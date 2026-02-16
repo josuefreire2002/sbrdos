@@ -1,0 +1,109 @@
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User
+from .models import ConfiguracionSistema, Lote, Cliente, Contrato, Cuota, Pago, Perfil
+
+class PerfilInline(admin.StackedInline):
+    model = Perfil
+    can_delete = False
+    verbose_name_plural = 'Perfil de Usuario (Cédula)'
+
+class UserAdmin(BaseUserAdmin):
+    inlines = (PerfilInline,)
+
+# Re-register UserAdmin
+admin.site.unregister(User)
+admin.site.register(User, UserAdmin)
+
+# 1. Configuración del Sistema (Para las reglas de Mora)
+@admin.register(ConfiguracionSistema)
+class ConfiguracionAdmin(admin.ModelAdmin):
+    list_display = ('nombre_empresa', 'ruc_empresa', 'mora_leve_dias', 'mora_grave_dias')
+    # Esto evita que creen más de una configuración (Solo debe haber 1)
+    def has_add_permission(self, request):
+        if self.model.objects.exists():
+            return False
+        return True
+
+# 2. Lotes (Inventario)
+@admin.register(Lote)
+class LoteAdmin(admin.ModelAdmin):
+    list_display = ('manzana', 'numero_lote', 'dimensiones', 'precio_contado', 'estado')
+    list_filter = ('estado', 'manzana')
+    search_fields = ('manzana', 'numero_lote')
+    list_editable = ('precio_contado', 'estado') # Permite editar rápido desde la lista
+
+# 3. Clientes
+@admin.register(Cliente)
+class ClienteAdmin(admin.ModelAdmin):
+    list_display = ('apellidos', 'nombres', 'cedula', 'celular', 'vendedor')
+    search_fields = ('cedula', 'apellidos', 'nombres')
+    list_filter = ('vendedor',)
+
+# 4. Cuotas (Para verlas dentro del contrato - solo como Inline, no registro standalone por bug Jazzmin/Django 6)
+class CuotaInline(admin.TabularInline):
+    model = Cuota
+    extra = 0
+    readonly_fields = ('saldo_pendiente', 'total_a_pagar')
+    can_delete = False
+
+# 5. Contratos
+@admin.register(Contrato)
+class ContratoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'cliente', 'lote', 'fecha_contrato', 'saldo_a_financiar', 'esta_en_mora')
+    list_filter = ('esta_en_mora', 'fecha_contrato')
+    search_fields = ('cliente__cedula', 'cliente__apellidos')
+    inlines = [CuotaInline] # Muestra las cuotas ahí mismo
+
+# 6. Pagos
+@admin.register(Pago)
+class PagoAdmin(admin.ModelAdmin):
+    list_display = ('fecha_pago', 'contrato', 'monto', 'metodo_pago', 'registrado_por')
+    list_filter = ('metodo_pago', 'fecha_pago')
+    search_fields = (
+        'contrato__cliente__nombres', 
+        'contrato__cliente__apellidos', 
+        'contrato__cliente__cedula',
+        'contrato__id'
+    )
+    date_hierarchy = 'fecha_pago'
+
+    def save_model(self, request, obj, form, change):
+        """
+        Al guardar un pago desde el admin (crear o editar),
+        recalculamos toda la deuda del contrato para mantener consistencia.
+        """
+        super().save_model(request, obj, form, change)
+        from .services import recalcular_deuda_contrato
+        recalcular_deuda_contrato(obj.contrato.id)
+
+    def delete_model(self, request, obj):
+        """
+        Al eliminar un pago desde el admin,
+        recalculamos la deuda para deshacer el efecto del pago borrado.
+        """
+        contrato_id = obj.contrato.id
+        super().delete_model(request, obj)
+        from .services import recalcular_deuda_contrato
+        recalcular_deuda_contrato(contrato_id)
+from django.contrib import admin
+from .models import *
+
+# Registramos tus modelos existentes si no lo están
+# (Asumo que ya tienes algunos, pero agrego LogActividad explícitamente)
+
+@admin.register(LogActividad)
+class LogActividadAdmin(admin.ModelAdmin):
+    list_display = ('fecha', 'usuario', 'accion', 'ip_address')
+    list_filter = ('accion', 'fecha', 'usuario')
+    search_fields = ('usuario__username', 'accion', 'detalle', 'ip_address')
+    readonly_fields = ('fecha', 'usuario', 'accion', 'detalle', 'ip_address')
+
+    def has_add_permission(self, request):
+        return False # Nadie puede crear logs manuales, solo el sistema
+
+    def has_change_permission(self, request, obj=None):
+        return False # Nadie puede editar logs (Integridad)
+        
+    def has_delete_permission(self, request, obj=None):
+        return False # Nadie puede borrar logs (Integridad)

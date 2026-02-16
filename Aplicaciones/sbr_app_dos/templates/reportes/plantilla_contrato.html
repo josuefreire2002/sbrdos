@@ -1,0 +1,289 @@
+{% load humanize %}
+{% load static %}
+{% load numeros_letras %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm 2.5cm;
+            /* Márgenes ajustados al estándar de Word */
+        }
+
+        body {
+            /* Fuente exacta de la captura de Word (image_888f9e.png) */
+            font-family: 'Yu Gothic UI Light', 'Segoe UI Light', 'Helvetica', sans-serif;
+            font-size: 11pt;
+            line-height: 1.3;
+            text-align: justify;
+            color: #000;
+        }
+
+        /* --- HEADER EXACTO --- */
+        .header-contrato {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: none;
+        }
+
+        .logo-cell {
+            width: 20%;
+            /* Espacio justo para el logo */
+            vertical-align: bottom;
+            /* Logo alineado abajo */
+            padding-right: 15px;
+            padding-bottom: 5px;
+        }
+
+        .logo-img {
+            width: 130px;
+            /* Ajustar según resolución real del logo */
+            height: auto;
+        }
+
+        .titulo-cell {
+            width: 80%;
+            vertical-align: bottom;
+            /* Para que el texto pegue con la línea */
+            padding-bottom: 5px;
+        }
+
+        .titulo-proyecto {
+            /* Fuente Serif, Cursiva y Negrita como en la imagen */
+            font-family: 'Times New Roman', Times, serif;
+            font-style: italic;
+            font-weight: bold;
+            /* Color exacto extraído de la imagen (Verde Salvia) */
+            color: #ABC986;
+            font-size: 19pt;
+            text-align: center;
+            /* El texto va centrado sobre la línea */
+            margin-bottom: 2px;
+            line-height: 1;
+        }
+
+        .linea-divisoria {
+            /* Línea GRUESA gris sólida */
+            height: 5px;
+            background-color: #808080;
+            /* Gris medio */
+            width: 100%;
+            border: none;
+        }
+
+        /* --- SUBTÍTULO --- */
+        .subtitulo-contrato {
+            text-align: center;
+            font-family: 'Times New Roman', Times, serif;
+            /* A menudo los subtítulos legales cambian a serif */
+            font-style: italic;
+            color: #808080;
+            /* Gris del subtítulo */
+            font-size: 12pt;
+            margin-top: 10px;
+            margin-bottom: 30px;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- CUERPO Y PÁRRAFOS --- */
+        p {
+            margin-bottom: 12pt;
+            text-indent: 1.25cm;
+            /* Sangría estándar de Word */
+        }
+
+        strong {
+            font-family: 'Yu Gothic UI', 'Segoe UI', sans-serif;
+            /* Versión bold de la fuente */
+            font-weight: bold;
+        }
+
+        .no-break {
+            white-space: nowrap;
+        }
+
+        /* --- FIRMAS --- */
+        .firmas-container {
+            margin-top: 50px;
+            width: 100%;
+            page-break-inside: avoid;
+        }
+
+        table.firmas {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        td.firma-col {
+            width: 50%;
+            text-align: center;
+            vertical-align: top;
+            padding: 0 20px;
+        }
+
+        .linea-firma {
+            border-top: 1px solid #000;
+            width: 85%;
+            margin: 0 auto 10px auto;
+        }
+
+        .firma-texto {
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header-contrato">
+        <table class="header-table">
+            <tr>
+                <td class="logo-cell">
+                    <img src="{% static 'img/logo_bellavista.png' %}" class="logo-img" alt="Ugsha">
+                </td>
+
+                <td class="titulo-cell">
+                    <div class="titulo-proyecto">
+                        Proyecto de Urbanización La Quinta del Moral
+                    </div>
+                    <div class="linea-divisoria"></div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="subtitulo-contrato">
+        CONTRATO DE RESERVA DE LOTE DE TERRENO
+    </div>
+
+    <p>
+        En la ciudad de La Maná, a los <strong>{{ contrato.fecha_contrato|date:"d" }}</strong> días del mes de
+        <strong>{{ contrato.fecha_contrato|date:"F" }}</strong> de <strong>{{ contrato.fecha_contrato|date:"Y"
+            }}</strong>,
+        proceden a celebrar de manera libre y voluntaria, el presente contrato de <strong>reserva del lote de
+            terreno</strong>,
+        por una parte, el señor <strong>GUILLERMO UGSHA ILAQUICHE</strong>, con la cedula de identidad <span
+            class="no-break">Nº 050289591-5</span>,
+        en representación legal y propietario del <strong>“PROYECTO DE URBANIZACIÓN LA QUINTA DEL MORAL”</strong>, por
+        sus propios derechos;
+        y por otra parte El/la señor/a. <strong>{{ contrato.cliente.apellidos|upper }} {{ contrato.cliente.nombres|upper
+            }}</strong>
+        con la cedula de identidad <span class="no-break">Nº {{ contrato.cliente.cedula }}</span>, en calidad de
+        contratantes,
+        también por sus propios derechos, todos los comparecientes son mayores de edad, con capacidad para proceder y
+        obligarse,
+        lo hacen de conformidad a las clausulas siguientes.
+    </p>
+
+    <p>
+        <strong>PRIMERA. –</strong> a) El señor. <strong>GUILLERMO UGSHA ILAQUICHE</strong>; Es propietario de un lote
+        de terreno, ubicado en Cantón La Maná, sector el Moral. Bien Inmueble en el cual se desarrolla el
+        <strong>“PROYECTO DE URBANIZACIÓN LA QUINTA DEL MORAL”</strong>, b) El mencionado proyecto se encuentra con la
+        aprobación definitiva del <strong>GAD Municipal De Cantón La Maná</strong>. c) El/la señor/a. <strong>
+            {{ contrato.cliente.apellidos|upper }} {{ contrato.cliente.nombres|upper }}</strong> con la cedula de
+        identidad
+        Nº <strong>{{ contrato.cliente.cedula }}</strong>, declara sus intereses de reserva <strong>lotes de
+            terreno</strong>
+        con el objeto de fijar el lote de terreno que se deduzca del proyecto urbanístico tantas veces referido. –
+    </p>
+
+    <p>
+        <strong>SEGUNDA. -</strong> Con estos antecedentes El/la señor/a. <strong>{{ contrato.cliente.apellidos|upper }}
+            {{ contrato.cliente.nombres|upper }}</strong> con la cedula de identidad Nº <strong>{{
+            contrato.cliente.cedula }}</strong>,
+        por sus propios y personales derechos, libre y voluntariamente, reserva para sí, <strong>un Lote de
+            terreno</strong>, signado
+        <strong># {{ contrato.lote.numero }} de la MZ {{ contrato.lote.manzana }}</strong> con una superficie total de
+        <strong>{{ contrato.lote.area }}mt2</strong>, del <strong>“PROYECTO DE URBANIZACIÓN LA QUINTA DEL
+            MORAL”</strong>,
+        ubicado en la ciudad de La Maná; y declara conocer que el referido proyecto se encuentra con la aprobación
+        definitiva,
+        al cumplimento a las ordenanzas municipales del mismo Cantón.
+    </p>
+
+    <p>
+        <strong>TERCERA. –</strong> Por otra parte el señor <strong>GUILLERMO UGSHA ILAQUICHE</strong>, acepta la
+        pretensión de los contratantes aclarado por el presente contrato tiene por propósito fijar y congelar el precio,
+        a objeto que no pueda variar en lo posterior, una vez que se obtenga la aprobación del proyecto de urbanización:
+        además señala que la Urbanización se ajusta a las ordenanzas municipales del GAD municipal del cantón La Maná;
+        En el que contempla la ejecución de servicio básico tales como: agua potable, aceras y bordillo, vías y energía
+        eléctrica.
+    </p>
+
+    <p>
+        <strong>CUARTA. –</strong> Precio y forma de pago, pactado para la presente separación del lote de terreno
+        especificado en la cláusula segunda; es de <strong>$ {{ contrato.precio_final|intcomma }}</strong>
+        ({{ contrato.precio_final_texto }}) dólares americanos. Pagaderos de la siguiente forma los
+        <strong>$ {{ contrato.valor_entrada|intcomma }}</strong> ({{ contrato.valor_entrada_texto }} dólares
+        americanos), se cancelará en la firma del presente contrato, y la diferencia en {{ contrato.numero_cuotas }}
+        pagos mensuales.
+    </p>
+
+    <p>
+        <strong>QUINTA. –</strong> En caso del promitente comprador desista del compromiso de la promesa de compra y
+        venta, por cualquier motivo o causa ajena a la voluntad del promitente vendedor - se procederá a descontar el
+        25% del precio pactado entre partes, en la cláusula cuarta, por gastos administrativos y otros, además el saldo
+        que hubiere favor de promitente comprador se liquidará cuando se proceda a la nueva venta del mismo lote de
+        terreno que se motiva este contrato.
+    </p>
+
+    <p>
+        <strong>SEXTA. –</strong> El <strong>promitente propietario</strong> está obligado a entregar la escritura
+        respectiva por el lote de terreno una vez que esté construido la infraestructura del mismo proyecto de la
+        urbanización.
+    </p>
+
+    <p>
+        <strong>SÉPTIMA. -</strong> Los contratantes declara conocer que el <strong>“PROYECTO DE URBANIZACIÓN LA QUINTA
+            DEL MORAL”</strong>, se encuentra con la aprobación definitiva, que el presente contrato no constituye
+        privado de promesa de compraventa y que desiste de proseguir acción alguna contemplada en el artículo 201 del
+        COIP, y lo que busca es congelar el precio pacto sobre la reserva de lotes de terreno tantas veces referido; y
+        que, en todo caso, el presente documento constituya un título ejecutivo, con el fin de garantizar las
+        obligaciones de reserva de los lotes de terreno.
+    </p>
+
+    <p>
+        <strong>OCTAVO. –</strong> Todo el gasto relativo a la ejecución de la escritura definitiva, el derecho a la
+        plusvalía, alcabala, derechos notariales, timbres, registro de la propiedad. Será cuenta del promitente cliente.
+    </p>
+
+    <p>
+        Para constancia de todo lo estipulado, los contratos suscriben el presente, en dos ejemplares idénticos, en el
+        mismo lugar y fecha ya indicados.
+    </p>
+
+    <div class="firmas-container">
+        <table class="firmas">
+            <tr>
+                <td class="firma-col">
+                    <div class="linea-firma"></div>
+                    <div class="firma-texto">
+                        <strong>Sr. GUILLERMO UGSHA ILQ.</strong><br>
+                        C.I. 050289591-5<br>
+                        <small><strong>PROMITENTE VENDEDOR</strong></small>
+                    </div>
+                </td>
+                <td class="firma-col">
+                    <div class="linea-firma"></div>
+                    <div class="firma-texto">
+                        <strong>Sr. {{ contrato.cliente.apellidos|upper }} {{ contrato.cliente.nombres|upper
+                            }}</strong><br>
+                        C.I. {{ contrato.cliente.cedula }}<br>
+                        <small><strong>PROMITENTE COMPRADOR</strong></small>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,571 @@
+{% extends 'base.html' %}
+
+{% block title %}Clientes | SBR Gestión{% endblock %}
+{% block breadcrumb %}Cartera de Clientes{% endblock %}
+
+{% block extra_head %}
+<!-- DataTables Bootstrap 5 CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+<style>
+    /* Elegant Table Styling */
+    .table-container {
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        background-color: white;
+        /* Ensure bg is white */
+    }
+
+    #clientesTable {
+        width: 100% !important;
+        margin-bottom: 0;
+    }
+
+    #clientesTable thead th {
+        background-color: #f8fafc;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        /* Increased from 0.75rem */
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid #e2e8f0;
+        padding: 1rem 0.75rem;
+        white-space: nowrap;
+        /* Keep headers single line if possible, or wrap if very long */
+    }
+
+    #clientesTable tbody td {
+        vertical-align: middle;
+        padding: 0.75rem;
+        color: #334155;
+        font-size: 0.95rem;
+        /* Increased from 0.875rem */
+        border-bottom: 1px solid #f1f5f9;
+        /* Force text wrapping */
+        white-space: normal !important;
+        word-wrap: break-word;
+        max-width: 250px;
+        /* Increased from 200px */
+        /* Limit width to force wrapping on long content */
+    }
+
+    /* Exceptions for specific columns */
+    #clientesTable tbody td:nth-child(4),
+    /* Cedula */
+    #clientesTable tbody td:nth-child(5) {
+        /* Celular */
+        white-space: nowrap !important;
+        /* Keep these single line */
+    }
+
+    #clientesTable tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    #clientesTable tbody tr:hover {
+        background-color: #f8fafc;
+    }
+
+    /* Subtle red background for Mora */
+    /* Subtle red background for Mora - Enhanced visibility */
+    tr.table-danger-subtle td {
+        background-color: #fee2e2 !important;
+        /* Visible light red */
+    }
+
+    tr.table-danger-subtle:hover td {
+        background-color: #fecaca !important;
+        /* Darker red on hover */
+    }
+
+    /* Yellow background for Cancelled */
+    tr.table-warning-subtle td {
+        background-color: #fef3c7 !important;
+        /* Amber-100 */
+    }
+
+    tr.table-warning-subtle:hover td {
+        background-color: #fde68a !important;
+        /* Amber-200 on hover */
+    }
+
+    /* Gray background for Devolucion */
+    tr.table-secondary-subtle td {
+        background-color: #e5e7eb !important;
+        /* Gray-200 */
+    }
+
+    tr.table-secondary-subtle:hover td {
+        background-color: #d1d5db !important;
+        /* Gray-300 on hover */
+    }
+
+    .badge-soft {
+        padding: 0.25em 0.6em;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        font-size: 0.75rem;
+    }
+
+    .filter-btn.active,
+    .mora-btn.active {
+        font-weight: 600;
+        box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    }
+
+    /* Custom DataTables Pagination */
+    .page-item.active .page-link {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .dataTables_filter {
+        display: none;
+        /* Hide default search to use our custom one */
+    }
+
+    /* Mobile Optimization */
+    @media (max-width: 768px) {
+
+        #clientesTable thead th,
+        #clientesTable tbody td {
+            padding: 0.5rem;
+            /* Compact padding on mobile */
+            font-size: 0.8rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card border-0 bg-white p-4">
+            <div
+                class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between mb-4 gap-3">
+                <div>
+                    <h4 class="fw-bold mb-1">Cartera de Clientes</h4>
+                    <p class="text-muted mb-0">Listado de todos los clientes vinculados a su cuenta.</p>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                        data-bs-target="#reporteGeneralModal">
+                        <i class="bi bi-table me-2"></i>Reporte General
+                    </button>
+                    <a href="{% url 'reporte_mensual' %}" class="btn btn-outline-success">
+                        <i class="bi bi-file-earmark-bar-graph me-2"></i>Reporte de Ganancias Mensual
+                    </a>
+                    <a href="{% url 'crear_venta' %}" class="btn btn-primary">
+                        <i class="bi bi-person-plus me-2"></i>Nuevo Cliente / Venta
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-lg-4">
+                    <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                        <span class="input-group-text bg-white border-end-0"><i
+                                class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-start-0 ps-0"
+                            placeholder="Buscar por nombre, cédula o lote..." id="clienteSearch">
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-auto">
+                    <div class="btn-group shadow-sm rounded-3 overflow-hidden w-100" role="group">
+                        <button type="button" class="btn btn-outline-primary active filter-btn"
+                            data-filter="all">Todos</button>
+                        <button type="button" class="btn btn-outline-primary filter-btn" data-filter="con-contrato">Con
+                            Contrato</button>
+                        <button type="button" class="btn btn-outline-primary filter-btn" data-filter="sin-contrato">Sin
+                            Contrato</button>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-auto">
+                    <div class="btn-group shadow-sm rounded-3 overflow-hidden w-100" role="group">
+                        <button type="button" class="btn btn-outline-danger active mora-btn"
+                            data-mora="all">Todos</button>
+                        <button type="button" class="btn btn-outline-danger mora-btn" data-mora="en-mora">En
+                            Mora</button>
+                        <button type="button" class="btn btn-outline-danger mora-btn" data-mora="al-dia">Al Día</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="table-responsive table-container">
+                <table id="clientesTable" class="table align-middle w-100">
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 50px;">N°</th>
+                            <th>F/Contrato</th>
+                            <th>Apellidos/Nombre</th>
+                            <th>Cédula</th>
+                            <th>Email</th>
+                            <th>Celular</th>
+                            <th class="text-center">N°Lote</th>
+                            <th class="text-center">Manzana</th>
+                            <th class="text-center">Foto Lote</th>
+                            <th class="text-center">Plazo</th>
+                            <th class="text-end">V/ Total</th>
+                            <th class="text-end">V/Entrada</th>
+                            <th class="text-end">Cuota</th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in clientes %}
+                        {% with contrato=cliente.contrato_set.last %}
+                        <tr class="client-row {% if contrato and contrato.estado == 'ACTIVO' and contrato.esta_en_mora %}table-danger-subtle{% elif contrato and contrato.estado == 'CANCELADO' %}table-warning-subtle{% elif contrato and contrato.estado == 'DEVOLUCION' %}table-secondary-subtle{% endif %}"
+                            data-status="{% if contrato and contrato.estado == 'ACTIVO' %}con-contrato{% else %}sin-contrato{% endif %}"
+                            data-mora="{% if contrato and contrato.estado == 'ACTIVO' and contrato.esta_en_mora %}en-mora{% else %}al-dia{% endif %}">
+
+                            <td class="text-center fw-bold text-muted">{{ forloop.counter }}</td>
+
+                            <td>
+                                {% if contrato %}
+                                <span class="text-nowrap">{{ contrato.fecha_contrato|date:"d/m/Y" }}</span>
+                                {% else %}
+                                <span class="badge bg-light text-muted fw-normal">--</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold text-dark">{{ cliente.apellidos }} {{ cliente.nombres }}</span>
+
+                                </div>
+                            </td>
+
+                            <td><span class="font-monospace">{{ cliente.cedula }}</span></td>
+
+                            <td>
+                                {% if cliente.email %}
+                                <span class="font-monospace">{{ cliente.email }}</span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <a href="https://wa.me/{{ cliente.celular }}" target="_blank"
+                                    class="text-success text-decoration-none">
+                                    <i class="bi bi-whatsapp"></i> {{ cliente.celular }}
+                                </a>
+                            </td>
+
+                            <td class="text-center">
+                                {% if contrato %}
+                                <span class="badge bg-info bg-opacity-10 text-info fw-bold">
+                                    {{ contrato.numeros_lotes_str }}
+                                </span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+
+                            <td class="text-center">
+                                {% if contrato %}
+                                {{ contrato.manzanas_str }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+
+                            <td class="text-center">
+                                {% if contrato and contrato.lote_principal.imagen %}
+                                <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
+                                    data-bs-target="#loteImgModal{{ contrato.id }}">
+                                    <i class="bi bi-image"></i> Ver
+                                </button>
+                                {% else %}
+                                <span class="text-muted small">--</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-center">
+                                {% if contrato %}
+                                {{ contrato.numero_cuotas }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+
+                            <td class="text-end font-monospace">
+                                {% if contrato %}
+                                ${{ contrato.precio_venta_final|floatformat:2 }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+
+                            <td class="text-end font-monospace">
+                                {% if contrato %}
+                                {% with pago_entrada=contrato.pago_set.first %}
+                                {% if pago_entrada and pago_entrada.metodo_pago != 'EFECTIVO' %}
+                                <button type="button" class="btn btn-sm btn-link text-decoration-none p-0"
+                                    data-bs-toggle="modal" data-bs-target="#entradaModal{{ contrato.id }}">
+                                    ${{ contrato.valor_entrada|floatformat:2 }} <i class="bi bi-eye-fill ms-1"></i>
+                                </button>
+                                {% else %}
+                                ${{ contrato.valor_entrada|floatformat:2 }}
+                                {% endif %}
+                                {% endwith %}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+
+                            <td class="text-end font-monospace">
+                                {% if contrato %}
+                                {% with primera_cuota=contrato.cuotas.first %}
+                                {% if primera_cuota %}
+                                ${{ primera_cuota.valor_capital|floatformat:2 }}
+                                {% else %}
+                                0.00
+                                {% endif %}
+                                {% endwith %}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+
+                            <td class="text-center">
+                                {% if contrato and contrato.estado == 'ACTIVO' %}
+                                {% if contrato.esta_en_mora %}
+                                <span class="badge bg-danger">Mora</span>
+                                {% else %}
+                                <span class="badge bg-success">Al Día</span>
+                                {% endif %}
+                                {% elif contrato and contrato.estado == 'CERRADO' %}
+                                <span class="badge bg-secondary">Finalizado</span>
+                                {% elif contrato and contrato.estado == 'CANCELADO' %}
+                                <span class="badge bg-warning text-dark">Cancelado</span>
+                                {% elif contrato and contrato.estado == 'DEVOLUCION' %}
+                                <span class="badge bg-secondary">Devolución</span>
+                                {% else %}
+                                <span class="badge bg-light text-dark border">Sin Contrato</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-center">
+                                {% if contrato %}
+                                <a href="{% url 'detalle_contrato' contrato.id %}"
+                                    class="btn btn-sm btn-primary text-nowrap" style="font-size: 0.8rem;">
+                                    Ver Detalles
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Modals (outside of table for proper Bootstrap rendering) -->
+{% for cliente in clientes %}
+{% with contrato=cliente.contrato_set.last %}
+{% if contrato and contrato.lote_principal.imagen %}
+<div class="modal fade" id="loteImgModal{{ contrato.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Mz. {{ contrato.manzanas_str }} - Lote {{ contrato.numeros_lotes_str }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center p-0">
+                <img src="{{ contrato.lote_principal.imagen.url }}" alt="Foto del lote" class="img-fluid">
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endwith %}
+{% endfor %}
+
+<!-- Modal for Entry Payment Details -->
+{% for cliente in clientes %}
+{% with contrato=cliente.contrato_set.last %}
+{% if contrato %}
+{% with pago_entrada=contrato.pago_set.first %}
+{% if pago_entrada and pago_entrada.metodo_pago != 'EFECTIVO' %}
+<div class="modal fade" id="entradaModal{{ contrato.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Detalle de Entrada</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3 text-center">
+                    <span class="badg bg-light text-dark border px-3 py-2 rounded-pill mb-2 d-inline-block">
+                        {{ pago_entrada.get_metodo_pago_display }}
+                    </span>
+                    <h2 class="text-success fw-bold">${{ pago_entrada.monto|floatformat:2 }}</h2>
+                </div>
+
+                <div class="alert alert-light border mb-3">
+                    <h6 class="fw-bold mb-1"><i class="bi bi-info-circle me-2"></i>Información del Pago</h6>
+                    <p class="mb-0 small text-muted">{{ pago_entrada.observacion }}</p>
+                </div>
+
+                {% if pago_entrada.comprobante_imagen %}
+                <div class="text-center border rounded-3 p-2 bg-light">
+                    <label class="small fw-bold text-muted mb-2 d-block">Comprobante Adjunto</label>
+                    <!-- Check file extension or just try to render? Image works for img tag. PDF needs object/embed or link. -->
+                    {% if '.pdf' in pago_entrada.comprobante_imagen.url %}
+                    <a href="{{ pago_entrada.comprobante_imagen.url }}" target="_blank"
+                        class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-file-pdf me-2"></i>Ver PDF del Comprobante
+                    </a>
+                    {% else %}
+                    <img src="{{ pago_entrada.comprobante_imagen.url }}" alt="Comprobante"
+                        class="img-fluid rounded shadow-sm" style="max-height: 300px;">
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted small py-3">
+                    <i class="bi bi-image-alt me-1"></i> Sin comprobante adjunto
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endwith %}
+{% endif %}
+{% endwith %}
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+    $(document).ready(function () {
+        // Custom Filtering Function
+        $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+            const tableRow = settings.aoData[dataIndex].nTr;
+            const status = $(tableRow).attr('data-status'); // con-contrato, sin-contrato
+            const mora = $(tableRow).attr('data-mora');     // en-mora, al-dia
+
+            // Get active filter values
+            const activeStatusFilter = $('.filter-btn.active').data('filter'); // all, con-contrato, sin-contrato
+            const activeMoraFilter = $('.mora-btn.active').data('mora');       // all, en-mora, al-dia
+
+            // Check Status Match
+            let statusMatch = true;
+            if (activeStatusFilter !== 'all') {
+                statusMatch = (status === activeStatusFilter);
+            }
+
+            // Check Mora Match
+            let moraMatch = true;
+            if (activeMoraFilter !== 'all') {
+                moraMatch = (mora === activeMoraFilter);
+            }
+
+            return statusMatch && moraMatch;
+        });
+
+        // Initialize DataTable
+        const table = $('#clientesTable').DataTable({
+            language: {
+                url: "//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json"
+            },
+            paging: true,
+            lengthChange: false, // Cleaner look without the "Show X entries" dropdown
+            pageLength: 10,
+            searching: true,
+            ordering: true,
+            info: true,
+            autoWidth: false,
+            responsive: false,
+            scrollX: true,
+            dom: '<"top"i>rt<"bottom"p><"clear">', // Custom DOM position: info top, table, pagination bottom
+            columnDefs: [
+                { orderable: false, targets: [5, 8, 14] }, // Disable sorting on Celular, Foto Lote, Acciones
+                { className: "text-end", targets: [9, 10, 11] }, // Align numeric columns
+                { className: "text-center", targets: [0, 1, 6, 7, 8, 12, 13, 14] }
+            ]
+        });
+
+        // Link Custom Search Input to DataTable
+        $('#clienteSearch').on('keyup', function () {
+            table.search(this.value).draw();
+        });
+
+        // Handle Filter Button Clicks
+        $('.filter-btn, .mora-btn').on('click', function () {
+            // Toggle active classes
+            if ($(this).hasClass('filter-btn')) {
+                $('.filter-btn').removeClass('active');
+            } else {
+                $('.mora-btn').removeClass('active');
+            }
+            $(this).addClass('active');
+
+            // Redraw table (triggers custom search function)
+            table.draw();
+        });
+    });
+</script>
+
+<!-- Modal for Reporte General -->
+<div class="modal fade" id="reporteGeneralModal" tabindex="-1" aria-labelledby="reporteGeneralModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="reporteGeneralModalLabel">
+                    <i class="bi bi-table me-2 text-primary"></i>Generar Reporte General
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'reporte_general' %}" method="GET">
+                <div class="modal-body">
+                    <p class="text-muted small">Seleccione el rango de meses para mostrar los pagos mensuales de cada
+                        cliente.</p>
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-uppercase text-muted">Desde (Mes/Año)</label>
+                            <input type="month" name="desde" class="form-control" required value="{% now 'Y-01' %}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-uppercase text-muted">Hasta (Mes/Año)</label>
+                            <input type="month" name="hasta" class="form-control" required value="{% now 'Y-m' %}">
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="solo_activos" id="soloActivos">
+                            <label class="form-check-label" for="soloActivos">
+                                Solo contratos activos
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-file-earmark-spreadsheet me-2"></i>Generar Reporte
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

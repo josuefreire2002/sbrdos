@@ -1,0 +1,333 @@
+{% load humanize %}
+{% load static %}
+{% load numeros_letras %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm 2.5cm;
+            /* Márgenes ajustados al estándar de Word */
+        }
+
+        body {
+            /* Fuente exacta de la captura de Word (image_888f9e.png) */
+            font-family: 'Yu Gothic UI Light', 'Segoe UI Light', 'Helvetica', sans-serif;
+            font-size: 11pt;
+            line-height: 1.3;
+            text-align: justify;
+            color: #000;
+        }
+
+        /* --- HEADER EXACTO --- */
+        .header-contrato {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: none;
+        }
+
+        .logo-cell {
+            width: 20%;
+            /* Espacio justo para el logo */
+            vertical-align: bottom;
+            /* Logo alineado abajo */
+            padding-right: 15px;
+            padding-bottom: 5px;
+        }
+
+        .logo-img {
+            width: 130px;
+            /* Ajustar según resolución real del logo */
+            height: auto;
+        }
+
+        .titulo-cell {
+            width: 80%;
+            vertical-align: bottom;
+            /* Para que el texto pegue con la línea */
+            padding-bottom: 5px;
+        }
+
+        .titulo-proyecto {
+            /* Fuente Serif, Cursiva y Negrita como en la imagen */
+            font-family: 'Times New Roman', Times, serif;
+            font-style: italic;
+            font-weight: bold;
+            /* Color exacto extraído de la imagen (Verde Salvia) */
+            color: #ABC986;
+            font-size: 19pt;
+            text-align: center;
+            /* El texto va centrado sobre la línea */
+            margin-bottom: 2px;
+            line-height: 1;
+        }
+
+        .linea-divisoria {
+            /* Línea GRUESA gris sólida */
+            height: 5px;
+            background-color: #808080;
+            /* Gris medio */
+            width: 100%;
+            border: none;
+        }
+
+        /* --- SUBTÍTULO --- */
+        .subtitulo-contrato {
+            text-align: center;
+            font-family: 'Times New Roman', Times, serif;
+            /* A menudo los subtítulos legales cambian a serif */
+            font-style: italic;
+            color: #808080;
+            /* Gris del subtítulo */
+            font-size: 12pt;
+            margin-top: 10px;
+            margin-bottom: 30px;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- CUERPO Y PÁRRAFOS --- */
+        p {
+            margin-bottom: 12pt;
+            text-indent: 1.25cm;
+            /* Sangría estándar de Word */
+        }
+
+        strong {
+            font-family: 'Yu Gothic UI', 'Segoe UI', sans-serif;
+            /* Versión bold de la fuente */
+            font-weight: bold;
+        }
+
+        .no-break {
+            white-space: nowrap;
+        }
+
+        /* --- FIRMAS --- */
+        .firmas-container {
+            margin-top: 50px;
+            width: 100%;
+            page-break-inside: avoid;
+        }
+
+        table.firmas {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        td.firma-col {
+            width: 50%;
+            text-align: center;
+            vertical-align: top;
+            padding: 0 20px;
+        }
+
+        .linea-firma {
+            border-top: 1px solid #000;
+            width: 85%;
+            margin: 0 auto 10px auto;
+        }
+
+        .firma-texto {
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="subtitulo-contrato">
+        CONTRATO DE RESERVA DE LOTE DE TERRENO
+    </div>
+
+    <p>
+        En la Ciudad de La Maná, parroquia y cantón del mismo nombre, provincia de Cotopaxi, a los <strong>{{
+            contrato.fecha_contrato|date:"d" }}</strong> días del mes de
+        <strong>{{ contrato.fecha_contrato|date:"F" }}</strong> de <strong>{{ contrato.fecha_contrato|date:"Y"
+            }}</strong>,
+        proceden a celebrar de manera libre y voluntaria, el presente <strong>CONTRATO DE RESERVA DE LOTE DE
+            TERRENO</strong>,
+        por una parte, el señor <strong>GUILLERMO UGSHA ILAQUICHE</strong>, con la cedula de identidad Nº 050289591-5,
+        Apoderado Especial de los propietarios de la <strong>CIUDADELA “BELLAVISTA”</strong>, por sus propios derechos;
+        y, por otra parte, El/La señor/a <strong>{{ contrato.cliente.apellidos|upper }} {{
+            contrato.cliente.nombres|upper }}</strong>,
+        con cédula de identidad Nº <strong>{{ contrato.cliente.cedula }}</strong> en calidad de contratantes, también
+        por sus propios derechos,
+        todos Los comparecientes declaran ser mayores de edad y con capacidad legal para contratar, convienen las
+        siguientes cláusulas:
+    </p>
+
+    <p>
+        <strong>PRIMERA. –</strong> a) <strong>EL VENDEDOR</strong> es propietario de un bien inmueble ubicado en la
+        avenida 19 de mayo,
+        sector El Moral, de la parroquia y cantón La Mana, provincia de Cotopaxi, de la superficie de ciento setenta y
+        cuatro mil
+        cuatrocientos cincuenta y seis puntos sesenta y un metros cuadrados, equivalente a diecisiete puntos
+        cuatrocientos cuarenta y cinco hectáreas.
+    </p>
+    <p>
+        b) Los linderos y dimensiones del inmueble son los siguientes: <strong>NORTE. -</strong> Con la Av. 19 de mayo;
+        <strong>SUR. -</strong> Predio del señor Javier Zabrano y Maria de Jesus Zabala Ponce;
+        <strong>ESTE. -</strong> Vía pública proyectada de 10 metros de ancho; y,
+        <strong>OESTE. -</strong> Con propiedad del señor Hugo Proaño Cela.
+        En caso de presentarse en este instrumento un error de transcripción, las partes determinan como correctos y
+        valederos los
+        linderos y superficies constantes en el título de dominio del cual deriva.
+    </p>
+    <p>
+        c) <strong>EL VENDEDOR</strong> declara que <strong>LA CIUDADELA “BELLAVISTA”</strong> se encuentra en proceso
+        de legalización
+        ante el GAD Municipal del cantón La Mana, en este sentido <strong>EL CONTRATANTE</strong> declara conocer y
+        aceptar el estado
+        de legalización del proyecto y asume el riesgo en caso de retrasos o modificaciones administrativas, sin que
+        ello implique
+        responsabilidad para <strong>EL VENDEDOR</strong> o pago de indemnizaciones por retrasos. –
+    </p>
+
+    <p>
+        <strong>SEGUNDA. -</strong> Con estos antecedentes <strong>EL VENDEDOR</strong> se obligan a vender a
+        <strong>EL/LA CONTRATANTE</strong>
+        {% if contrato.lotes.count > 1 %}los LOTES signados{% else %}el LOTE{% endif %}
+        {% for lote in contrato.lotes.all %}
+        <strong>Nº {{ lote.numero_lote }}</strong> de la manzana <strong>{{ lote.manzana }}</strong>, de la
+        <strong>CIUDADELA “BELLAVISTA”</strong>,
+        con una superficie aproximada de <strong>{{ lote.dimensiones }}</strong>{% if not forloop.last %}, y {% endif %}
+        {% endfor %}, identificado en el plano general del proyecto.
+        <strong>El lote objeto de la presente reserva no podrá ser transferido, cedido o gravado por la CONTRATANTE sin
+            la autorización escrita de EL VENDEDOR hasta el pago total del precio.</strong>
+    </p>
+
+    <p>
+        <strong>TERCERA. –</strong> Por otra parte el señor <strong>GUILLERMO UGSHA ILAQUICHE</strong>, acepta la
+        pretensión de los
+        contratantes aclarado por el presente contrato tiene por propósito fijar y congelar el precio, a objeto que no
+        pueda variar
+        en lo posterior, una vez que se obtenga la aprobación del proyecto de urbanización: además señala que la
+        Urbanización se ajusta
+        a las ordenanzas del GAD municipal del cantón La Maná; En el que contempla la ejecución de servicio básico tales
+        como:
+        agua potable, aceras y bordillo, vías y energía eléctrica.
+    </p>
+
+    <p>
+        <strong>CUARTA. –</strong> Precio y forma de pago, pactado para la presente separación del lote de terreno
+        especificado en la cláusula segunda;
+        es de <strong>$ {{ contrato.precio_venta_final|intcomma }} ({{ contrato.precio_venta_final|numero_a_letras
+            }})</strong> dólares americanos.
+        Que en el contrato se compromete a pagar de la siguiente forma:
+        <br>
+        a) Los <strong>$ {{ contrato.valor_entrada|intcomma }} ({{ contrato.valor_entrada|numero_a_letras }})</strong>
+        dólares americanos,
+        al momento de la firma del presente contrato de promesa, mediante transferencia bancaria en la cuenta del Banco
+        Pichincha; y
+        <br>
+        <strong>BANCO PICHINCHA CUENTA DE AHORROS N° 2214855541</strong>
+        <br>
+        b) La diferencia de <strong>$ {{ saldo_pendiente|intcomma }}</strong> dólares americanos,
+        en <strong>{{ contrato.numero_cuotas }}</strong> cuotas mensuales desde la fecha del presente contrato.
+    </p>
+
+    <p>
+        <strong>QUINTA. –</strong> En caso del promitente comprador desista del compromiso de la promesa de compra y
+        venta, por cualquier motivo
+        o causa ajena a la voluntad del promitente vendedor. - se procederá a descontar el <strong>30%</strong> del
+        precio pactado entre partes,
+        en la cláusula cuarta, por gastos administrativos y otros, además el saldo que hubiere favor de promitente
+        comprador se liquidará
+        cuando se proceda a la nueva venta del mismo lote de terreno que se motiva este contrato.
+    </p>
+
+    <p>
+        <strong>SEXTA. –</strong> El promitente propietario está obligado a entregar la escritura respectiva por el lote
+        de terreno una vez
+        que esté construido la infraestructura del mismo proyecto de la urbanización.
+    </p>
+
+    <p>
+        <strong>SÉPTIMA. -</strong> Los contratantes declara conocer que el <strong>“PROYECTO DE LA CIUDADELA
+            “BELLAVISTA”</strong> se encuentra
+        en proceso de aprobación y que el presente contrato no constituye privado de promesa de compraventa y que
+        desiste de proseguir acción
+        alguna contemplada en el artículo 201 del COIP, y lo que busca es congelar el precio pactado sobre la reserva
+        del lote de terreno antes
+        referido; y que, en todo caso, el presente documento constituya un título ejecutivo, con el fin de garantizar
+        las obligaciones de
+        reserva de los lotes de terreno.
+        <br>
+        En caso de que <strong>EL/LA CONTRATANTE</strong>, realice algún tipo de mejora o construcción en el bien
+        inmueble reservado y esta
+        decidiere desistir de la compra venta por cualquier razón, <strong>EL VENDEDOR</strong>, no tiene la obligación
+        de indemnizar ni
+        reconocer ningún valor por las mejoras o las construcciones realizadas en el lote de terreno, quedando éstas en
+        favor de
+        <strong>EL VENDEDOR</strong>, en tal sentido <strong>EL/LA CONTRATANTE</strong> renuncia a iniciar algún tipo de
+        proceso civil,
+        penal o administrativo por estas causas.
+    </p>
+
+    <p>
+        <strong>OCTAVO. – Los gastos notariales, de registro, impuestos, plusvalía y demás costos relacionados
+            con la escritura pública
+            serán de cuenta exclusiva del comprador.</strong>
+    </p>
+
+    <p>
+        <strong>NOVENA. -</strong> Las partes celebran el presente contrato de buena fe. Por lo mismo, se obligan a
+        realizar todo cuanto estuviere
+        a su alcance, a fin de que la compraventa prometida tenga su cabal realización, en el menor tiempo posible, que
+        es la finalidad de este convenio.
+        En lo no previsto se sujetan a las normas de los Códigos Civil, y del Código Orgánico General de Procesos, así
+        como a las conversaciones
+        amigables entre los contratantes, a base de los principios de equidad. Para el evento de una reclamación
+        judicial, renuncian domicilio,
+        se sujetan a los jueces competentes del Cantón Latacunga. Si una de las partes se resistiere a firmar la
+        escritura de compraventa definitiva,
+        lo hará en representación el señor Juez de lo Civil de Latacunga, que corresponda en virtud del sorteo y al
+        amparo de lo que dispone el
+        Código Orgánico General de Procesos.
+    </p>
+
+    <p>
+        <strong>DECIMA. -</strong> Leído que fue el presente contrato y enteradas las partes de su contenido, lo firman
+        en dos ejemplares de igual
+        tenor y valor.
+    </p>
+    <br><br><br><br><br><br><br><br>
+    <div class="firmas-container">
+        <table class="firmas">
+            <tr>
+                <td class="firma-col">
+                    <div class="linea-firma">
+                        <div class="firma-texto">
+                            <br>
+                            <strong>Sr. GUILLERMO UGSHA ILQ.</strong><br>
+                            C.I. 050289591-5<br>
+                            <small><strong>PROMITENTE VENDEDOR</strong></small>
+                        </div>
+                    </div>
+                </td>
+                <td class="firma-col">
+                    <div class="linea-firma">
+                        <div class="firma-texto">
+                            <br>
+                            <strong>Sr/a. {{ contrato.cliente.apellidos|upper }} {{ contrato.cliente.nombres|upper}}
+                            </strong><br>
+                            C.I. {{ contrato.cliente.cedula }}<br>
+                            <small><strong>PROMITENTE COMPRADOR</strong></small>
+                        </div>
+                    </div>
+
+                </td>
+            </tr>
+        </table>
+    </div>
+
+</body>
+
+</html>
