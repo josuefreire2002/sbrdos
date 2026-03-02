@@ -18,7 +18,7 @@ admin.site.register(User, UserAdmin)
 # 1. Configuración del Sistema (Para las reglas de Mora)
 @admin.register(ConfiguracionSistema)
 class ConfiguracionAdmin(admin.ModelAdmin):
-    list_display = ('nombre_empresa', 'ruc_empresa', 'mora_leve_dias', 'mora_grave_dias')
+    list_display = ('nombre_empresa', 'ruc_empresa', 'mora_porcentaje')
     # Esto evita que creen más de una configuración (Solo debe haber 1)
     def has_add_permission(self, request):
         if self.model.objects.exists():

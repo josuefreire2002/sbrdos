@@ -11,18 +11,45 @@
         <div
             class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
             <div>
-                <h4 class="fw-bold mb-1">Reporte de Ingresos y Mora</h4>
+                <h4 class="fw-bold mb-1">Reporte Financiero Mensual</h4>
                 <p class="text-muted mb-0">
                     Período: <strong>
-                        {{ fecha_inicio|date:"d/m/Y" }}</strong> al <strong>{{ fecha_fin|date:"d/m/Y"}}
+                        {% if es_anual %}
+                        Todo el Año {{ anio_actual }}
+                        {% else %}
+                        {{ fecha_inicio|date:"d/m/Y" }} al {{ fecha_fin|date:"d/m/Y"}}
+                        {% endif %}
                     </strong>
                 </p>
             </div>
+
+            <form method="get" class="d-flex gap-2 align-items-center bg-white p-2 rounded shadow-sm border">
+                <select name="mes" class="form-select form-select-sm" required>
+                    <option value="anual" {% if es_anual %}selected{% endif %}>Todo el Año (Anual)</option>
+                    <option value="1" {% if mes_actual == 1 %}selected{% endif %}>Enero</option>
+                    <option value="2" {% if mes_actual == 2 %}selected{% endif %}>Febrero</option>
+                    <option value="3" {% if mes_actual == 3 %}selected{% endif %}>Marzo</option>
+                    <option value="4" {% if mes_actual == 4 %}selected{% endif %}>Abril</option>
+                    <option value="5" {% if mes_actual == 5 %}selected{% endif %}>Mayo</option>
+                    <option value="6" {% if mes_actual == 6 %}selected{% endif %}>Junio</option>
+                    <option value="7" {% if mes_actual == 7 %}selected{% endif %}>Julio</option>
+                    <option value="8" {% if mes_actual == 8 %}selected{% endif %}>Agosto</option>
+                    <option value="9" {% if mes_actual == 9 %}selected{% endif %}>Septiembre</option>
+                    <option value="10" {% if mes_actual == 10 %}selected{% endif %}>Octubre</option>
+                    <option value="11" {% if mes_actual == 11 %}selected{% endif %}>Noviembre</option>
+                    <option value="12" {% if mes_actual == 12 %}selected{% endif %}>Diciembre</option>
+                </select>
+                <input type="number" name="anio" class="form-control form-control-sm" value="{{ anio_actual }}"
+                    min="2020" max="2100" style="width: 80px;" required>
+                <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search"></i> Filtrar</button>
+            </form>
+
             <div class="d-flex gap-2 flex-wrap">
                 <a href="{% url 'lista_clientes' %}" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left me-2"></i>Volver
                 </a>
-                <a href="{% url 'reporte_mensual_pdf' %}" class="btn btn-danger">
+                <a href="{% url 'reporte_mensual_pdf' %}?mes={{ mes_actual }}&anio={{ anio_actual }}"
+                    class="btn btn-danger" target="_blank">
                     <i class="bi bi-file-earmark-pdf me-2"></i>Descargar PDF
                 </a>
             </div>
@@ -30,12 +57,13 @@
     </div>
 
     <!-- Summary Cards -->
-    <div class="col-12 col-md-6 col-xl-3">
+    <div class="col-12 col-md-6 col-xl-4">
         <div class="card border-0 border-top border-4 border-success shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
-                        <h6 class="text-muted text-uppercase x-small fw-bold mb-1">Ingresos Mensuales</h6>
+                        <h6 class="text-muted text-uppercase x-small fw-bold mb-1"
+                            title="Dinero real ingresado este mes">Ingresos Cobrados (Real)</h6>
                         <h2 class="fw-bold mb-0 text-success">${{ total_ingresos|intcomma }}</h2>
                     </div>
                     <i class="bi bi-cash-coin text-success opacity-25 fs-1"></i>
@@ -47,52 +75,37 @@
         </div>
     </div>
 
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="card border-0 border-top border-4 border-danger shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                        <h6 class="text-muted text-uppercase x-small fw-bold mb-1">Mora Mensual</h6>
-                        <h2 class="fw-bold mb-0 text-danger">${{ total_mora|intcomma }}</h2>
-                    </div>
-                    <i class="bi bi-exclamation-triangle text-danger opacity-25 fs-1"></i>
-                </div>
-                <div class="p-2 bg-danger-subtle text-danger rounded-3 small fw-medium">
-                    <i class="bi bi-info-circle me-1"></i> {{ mora_lista|length }} cliente(s) en mora
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-12 col-md-6 col-xl-3">
-        <div class="card border-0 border-top border-4 border-secondary shadow-sm h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                        <h6 class="text-muted text-uppercase x-small fw-bold mb-1">Total Devoluciones</h6>
-                        <h2 class="fw-bold mb-0 text-secondary">-${{ total_devoluciones|intcomma }}</h2>
-                    </div>
-                    <i class="bi bi-arrow-counterclockwise text-secondary opacity-25 fs-1"></i>
-                </div>
-                <div class="p-2 bg-secondary-subtle text-secondary rounded-3 small fw-medium">
-                    <i class="bi bi-info-circle me-1"></i> {{ devoluciones_lista|length }} cliente(s) devueltos
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-12 col-md-6 col-xl-3">
+    <div class="col-12 col-md-6 col-xl-4">
         <div class="card border-0 border-top border-4 border-primary shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
-                        <h6 class="text-muted text-uppercase x-small fw-bold mb-1">Ingresos Totales Netos</h6>
-                        <h2 class="fw-bold mb-0 text-primary">${{ ingreso_neto|intcomma }}</h2>
+                        <h6 class="text-muted text-uppercase x-small fw-bold mb-1"
+                            title="Cuotas por vencer en este mes">Proyección Restante</h6>
+                        <h2 class="fw-bold mb-0 text-primary">${{ total_proyeccion|intcomma }}</h2>
                     </div>
-                    <i class="bi bi-graph-up-arrow text-primary opacity-25 fs-1"></i>
+                    <i class="bi bi-calendar-check text-primary opacity-25 fs-1"></i>
                 </div>
                 <div class="p-2 bg-primary-subtle text-primary rounded-3 small fw-medium">
-                    <i class="bi bi-calculator me-1"></i> Ingresos - Mora - Dev.
+                    <i class="bi bi-info-circle me-1"></i> Por cobrar este mes
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card border-0 border-top border-4 border-danger shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h6 class="text-muted text-uppercase x-small fw-bold mb-1"
+                            title="Cuotas atrasadas de meses anteriores">Mora Histórica</h6>
+                        <h2 class="fw-bold mb-0 text-danger">${{ total_mora_historica|intcomma }}</h2>
+                    </div>
+                    <i class="bi bi-exclamation-triangle text-danger opacity-25 fs-1"></i>
+                </div>
+                <div class="p-2 bg-danger-subtle text-danger rounded-3 small fw-medium">
+                    <i class="bi bi-exclamation-circle me-1"></i> Deuda de meses pasados
                 </div>
             </div>
         </div>
@@ -136,11 +149,12 @@
         </div>
     </div>
 
-    <!-- Mora Table -->
+    <!-- Proyeccion Table -->
     <div class="col-12">
         <div class="card border-0 shadow-sm overflow-hidden">
-            <div class="card-header bg-danger text-white py-3 px-4">
-                <h5 class="fw-bold mb-0"><i class="bi bi-arrow-down-circle me-2"></i>Detalle de Mora</h5>
+            <div class="card-header bg-primary text-white py-3 px-4">
+                <h5 class="fw-bold mb-0"><i class="bi bi-calendar-check me-2"></i>Proyección Restante (Por cobrar este
+                    mes)</h5>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -148,26 +162,26 @@
                         <tr class="text-uppercase x-small text-muted fw-bold">
                             <th class="ps-4">Cliente</th>
                             <th>Lote</th>
-                            <th class="text-center">Cuotas Vencidas</th>
-                            <th class="text-end pe-4">Deuda Total</th>
+                            <th class="text-center">Cuotas Venciendo</th>
+                            <th class="text-end pe-4">Ganancia Esperada</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in mora_lista %}
-                        <tr class="bg-danger bg-opacity-10">
+                        {% for item in proyeccion_lista %}
+                        <tr class="bg-primary bg-opacity-10">
                             <td class="ps-4">
                                 <span class="fw-medium">{{ item.cliente.apellidos }} {{ item.cliente.nombres }}</span>
                                 <div class="text-muted x-small">{{ item.cliente.cedula }}</div>
                             </td>
                             <td>Mz {{ item.contrato.lote.manzana }} - Lote {{ item.contrato.lote.numero_lote }}</td>
                             <td class="text-center">
-                                <span class="badge bg-danger">{{ item.cuotas_vencidas }}</span>
+                                <span class="badge bg-primary">{{ item.cuotas_count }}</span>
                             </td>
-                            <td class="text-end pe-4 fw-bold text-danger">${{ item.deuda_total|intcomma }}</td>
+                            <td class="text-end pe-4 fw-bold text-primary">${{ item.deuda_total|intcomma }}</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">No hay clientes en mora. ¡Excelente!
+                            <td colspan="4" class="text-center py-4 text-muted">No hay cuotas por cobrar en este mes.
                             </td>
                         </tr>
                         {% endfor %}
@@ -177,11 +191,12 @@
         </div>
     </div>
 
-    <!-- Devoluciones Table -->
+    <!-- Mora Historica Table -->
     <div class="col-12">
         <div class="card border-0 shadow-sm overflow-hidden">
-            <div class="card-header bg-secondary text-white py-3 px-4">
-                <h5 class="fw-bold mb-0"><i class="bi bi-arrow-counterclockwise me-2"></i>Detalle de Devoluciones</h5>
+            <div class="card-header bg-danger text-white py-3 px-4">
+                <h5 class="fw-bold mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Mora Histórica (Arrastre de
+                    meses anteriores)</h5>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -189,23 +204,27 @@
                         <tr class="text-uppercase x-small text-muted fw-bold">
                             <th class="ps-4">Cliente</th>
                             <th>Lote</th>
-                            <th class="text-end pe-4">Total Devuelto</th>
+                            <th class="text-center">Cuotas Vencidas</th>
+                            <th class="text-end pe-4">Deuda Atrasada</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in devoluciones_lista %}
-                        <tr class="bg-secondary bg-opacity-10">
+                        {% for item in mora_historica_lista %}
+                        <tr class="bg-danger bg-opacity-10">
                             <td class="ps-4">
                                 <span class="fw-medium">{{ item.cliente.apellidos }} {{ item.cliente.nombres }}</span>
                                 <div class="text-muted x-small">{{ item.cliente.cedula }}</div>
                             </td>
                             <td>Mz {{ item.contrato.lote.manzana }} - Lote {{ item.contrato.lote.numero_lote }}</td>
-                            <td class="text-end pe-4 fw-bold text-secondary">-${{ item.monto|intcomma }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-danger">{{ item.cuotas_count }}</span>
+                            </td>
+                            <td class="text-end pe-4 fw-bold text-danger">${{ item.deuda_total|intcomma }}</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="3" class="text-center py-4 text-muted">No hay devoluciones registradas este
-                                mes.</td>
+                            <td colspan="4" class="text-center py-4 text-muted">No hay clientes con deuda histórica
+                                arrastrada. ¡Excelente!</td>
                         </tr>
                         {% endfor %}
                     </tbody>

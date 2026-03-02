@@ -45,6 +45,8 @@ urlpatterns = [
     
     # Ruta para ver el recibo de transferencia (imagen)
     path('pago/<int:pago_id>/ver-comprobante/', views.ver_comprobante_view, name='ver_comprobante'),
+    path('pago/<int:pago_id>/descargar-recibo/', views.descargar_recibo_transaccion_pdf, name='descargar_recibo_transaccion'),
+    path('pago/<int:pago_id>/preview-recibo/', views.preview_recibo_transaccion, name='preview_recibo_transaccion'),
 
     # Reporte mensual de ingresos y mora
     path('reportes/mensual/', views.reporte_mensual_view, name='reporte_mensual'),

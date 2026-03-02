@@ -1,0 +1,34 @@
+
+================ TEST EXHAUSTIVO CONTABLE ================
+
+
+--- ESCENARIO 1: Pago de 500 para la Cuota 1 ---
+
+--- Estado Actual del Contrato ---
+Suma de Pago.monto: 500.00
+Suma de DetallePago.monto_aplicado: 500.00
+Suma de Cuota.valor_pagado: 500.00
+Cuota 1: Deuda=500.00, Pagado=500.00, Estado=PAGADO
+Cuota 2: Deuda=500.00, Pagado=0.00, Estado=PENDIENTE
+
+--- ESCENARIO 2: Abono excedente de 600 (500 a la Cuota 2, 100 sobran) ---
+
+--- Estado Actual del Contrato ---
+Suma de Pago.monto: 1100.00
+Suma de DetallePago.monto_aplicado: 1000.00
+Suma de Cuota.valor_pagado: 1000.00
+❌ INCONSISTENCIA: La suma de los pagos reales no cuadra con la suma de la distribución (Detalles)
+❌ INCONSISTENCIA: Se recaudó un monto distinto al que se liquidó en las cuotas.
+Cuota 1: Deuda=500.00, Pagado=500.00, Estado=PAGADO
+Cuota 2: Deuda=500.00, Pagado=500.00, Estado=PAGADO
+
+--- ESCENARIO 3: Administrador elimina el Pago #1 (Recálculo masivo) ---
+
+--- Estado Actual del Contrato ---
+Suma de Pago.monto: 600.00
+Suma de DetallePago.monto_aplicado: 600.00
+Suma de Cuota.valor_pagado: 600.00
+Cuota 1: Deuda=500.00, Pagado=500.00, Estado=PAGADO
+Cuota 2: Deuda=500.00, Pagado=100.00, Estado=PARCIAL
+
+Finalizando test: Rollback provocado para limpiar DB.
