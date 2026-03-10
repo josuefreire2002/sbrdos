@@ -12,7 +12,7 @@ import base64
 import os
 from django.contrib.staticfiles import finders
 # Importamos Modelos
-from .models import Cliente, Lote, Contrato, Pago, Cuota, ConfiguracionSistema, DetallePago
+from .models import Cliente, Lote, Contrato, Pago, Cuota, ConfiguracionSistema, DetallePago, MovimientoCaja
 
 # Importamos Servicios (La lógica pesada)
 from .services import (
@@ -259,6 +259,7 @@ def detalle_contrato_view(request, pk):
     # 2. Marcar cada cuota
     for c in cuotas:
         c.es_principal_de_algun_pago = False
+        c.monto_real_abonado = Decimal('0.00')
         origenes = set()
         
         # Iterar sobre los pagos que afectaron a esta cuota
@@ -272,6 +273,8 @@ def detalle_contrato_view(request, pk):
              
              if inicio_num == c.numero_cuota:
                  c.es_principal_de_algun_pago = True
+                 # Sumar el monto total de la transacción original radicada en esta cuota
+                 c.monto_real_abonado += detalle.pago.monto
              else:
                  # Es secundario (surplus)
                  origenes.add(inicio_num)
@@ -942,6 +945,9 @@ def reporte_general_view(request):
     total_saldo = Decimal('0.00')  # Suma de saldos pendientes
     
     for contrato in contratos_qs:
+        # Actualizar moras para que el saldo pendiente sea exacto al del detalle_cliente
+        actualizar_moras_contrato(contrato.id)
+        
         # Basic data
         row = {
             'contrato': contrato,
@@ -962,17 +968,38 @@ def reporte_general_view(request):
         if primera_cuota:
             total_cuotas += primera_cuota.valor_capital
         
-        # For each month, calculate total paid based on actual PAYMENT date (CASH logic)
+        cuotas_en_rango = contrato.cuotas.filter(
+            fecha_vencimiento__gte=desde,
+            fecha_vencimiento__lte=hasta
+        )
+        
+        # Calcular saldo pendiente del rango seleccionado
+        row['saldo_pendiente'] = sum(c.saldo_pendiente for c in cuotas_en_rango)
+        total_saldo += row['saldo_pendiente']
+        
+        # Mapa de Pago -> Cuota Raíz (la de menor número a la que aplicó ese pago)
+        pago_inicio_map = {}
+        for d in DetallePago.objects.filter(pago__contrato=contrato).select_related('cuota', 'pago'):
+            pid = d.pago_id
+            q_num = d.cuota.numero_cuota
+            if pid not in pago_inicio_map:
+                pago_inicio_map[pid] = d.cuota
+            else:
+                if q_num < pago_inicio_map[pid].numero_cuota:
+                    pago_inicio_map[pid] = d.cuota
+                    
+        # Calcular los totales mensuales ubicando el 100% del pago en el mes de su CUOTA RAÍZ
         for i, mes in enumerate(meses):
             mes_inicio = date(mes['year'], mes['month'], 1)
             mes_fin = mes_inicio + relativedelta(months=1) - relativedelta(days=1)
             
-            # Sum monto for pagos that were MADE in this month
-            pagos_mes = contrato.pago_set.filter(
-                fecha_pago__gte=mes_inicio,
-                fecha_pago__lte=mes_fin
-            )
-            total_mes = sum(p.monto for p in pagos_mes)
+            total_mes = Decimal('0.00')
+            for pago in contrato.pago_set.all():
+                cuota_raiz = pago_inicio_map.get(pago.id)
+                # Si el pago pertenece a una cuota y esa cuota VENCE en este mes iterado
+                if cuota_raiz and mes_inicio <= cuota_raiz.fecha_vencimiento <= mes_fin:
+                    total_mes += pago.monto
+            
             row['pagos_mensuales'].append(total_mes)
             
             # Add to monthly totals (subtract if devolucion)
@@ -980,14 +1007,15 @@ def reporte_general_view(request):
                 totales_mensuales[i] -= total_mes
             else:
                 totales_mensuales[i] += total_mes
-        
-        # Calcular saldo pendiente REAL: suma de saldo_pendiente de TODAS las cuotas
-        # Usa el mismo property que detalle_cliente.html (cuota.saldo_pendiente)
-        row['saldo_pendiente'] = sum(c.saldo_pendiente for c in contrato.cuotas.all())
-        total_saldo += row['saldo_pendiente']
-        
-        # Calcular total_pagado REAL: suma total de dinero ingresado en caja (incluye excedentes)
-        row['total_pagado'] = sum(p.monto or Decimal('0.00') for p in contrato.pago_set.all())
+                
+        # Calcular total_pagado del rango seleccionado basándose en la CUOTA RAÍZ
+        total_pagado_rango = Decimal('0.00')
+        for pago in contrato.pago_set.all():
+            cuota_raiz = pago_inicio_map.get(pago.id)
+            if cuota_raiz and desde <= cuota_raiz.fecha_vencimiento <= hasta:
+                total_pagado_rango += pago.monto
+                
+        row['total_pagado'] = total_pagado_rango
         
         # Add to general total
         if row['es_devolucion']:
@@ -1060,35 +1088,68 @@ def reporte_general_pdf_view(request):
     total_cuotas = Decimal('0.00')
     
     for contrato in contratos_qs:
+        # Actualizar moras para exactitud financiera
+        actualizar_moras_contrato(contrato.id)
+        
+        hasta_fin_de_mes = hasta.replace(day=1) + relativedelta(months=1) - relativedelta(days=1)
+        cuotas_en_rango = contrato.cuotas.filter(
+            fecha_vencimiento__gte=desde.replace(day=1),
+            fecha_vencimiento__lte=hasta_fin_de_mes
+        )
+        
         row = {
             'contrato': contrato,
             'cliente': contrato.cliente,
             'lote': contrato.lote,
             'pagos_mensuales': [],
             'total_pagado': Decimal('0.00'),
-            'es_devolucion': contrato.estado == 'DEVOLUCION'
+            'es_devolucion': contrato.estado == 'DEVOLUCION',
+            'saldo_pendiente': sum(c.saldo_pendiente for c in cuotas_en_rango)
         }
         
         primera_cuota = contrato.cuotas.first()
         if primera_cuota:
             total_cuotas += primera_cuota.valor_capital
         
+        # Mapa de Pago -> Cuota Raíz (la de menor número a la que aplicó ese pago)
+        pago_inicio_map = {}
+        for d in DetallePago.objects.filter(pago__contrato=contrato).select_related('cuota', 'pago'):
+            pid = d.pago_id
+            q_num = d.cuota.numero_cuota
+            if pid not in pago_inicio_map:
+                pago_inicio_map[pid] = d.cuota
+            else:
+                if q_num < pago_inicio_map[pid].numero_cuota:
+                    pago_inicio_map[pid] = d.cuota
+                    
         for i, mes in enumerate(meses):
             mes_inicio = date(mes['year'], mes['month'], 1)
             mes_fin = mes_inicio + relativedelta(months=1) - relativedelta(days=1)
             
-            cuotas_mes = contrato.cuotas.filter(
-                fecha_vencimiento__gte=mes_inicio,
-                fecha_vencimiento__lte=mes_fin
-            )
-            total_mes = sum(c.valor_pagado for c in cuotas_mes)
+            # Calcular en base a la Cuota Raíz
+            total_mes = Decimal('0.00')
+            for pago in contrato.pago_set.all():
+                cuota_raiz = pago_inicio_map.get(pago.id)
+                if cuota_raiz and mes_inicio <= cuota_raiz.fecha_vencimiento <= mes_fin:
+                    total_mes += pago.monto
+                    
             row['pagos_mensuales'].append(total_mes)
-            row['total_pagado'] += total_mes
             
+            # Add to monthly totals (subtract if devolucion)
             if row['es_devolucion']:
                 totales_mensuales[i] -= total_mes
             else:
                 totales_mensuales[i] += total_mes
+                
+        # Calcular total_pagado del rango seleccionado basándose en la CUOTA RAÍZ
+        total_pagado_rango = Decimal('0.00')
+        hasta_fin_de_mes_range = hasta.replace(day=1) + relativedelta(months=1) - relativedelta(days=1)
+        for pago in contrato.pago_set.all():
+            cuota_raiz = pago_inicio_map.get(pago.id)
+            if cuota_raiz and desde.replace(day=1) <= cuota_raiz.fecha_vencimiento <= hasta_fin_de_mes_range:
+                total_pagado_rango += pago.monto
+                
+        row['total_pagado'] = total_pagado_rango
         
         if row['es_devolucion']:
             total_general -= row['total_pagado']
@@ -1294,3 +1355,74 @@ def descargar_recibo_transaccion_pdf(request, pago_id):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
+# ==========================================
+# GESTOR DE GASTOS Y FLUJO DE CAJA
+# ==========================================
+@login_required
+def gestor_gastos_view(request):
+    """
+    Vista principal del dashboard del gestor de gastos.
+    Muestra los KPIs (Saldo, Ingresos, Gastos) e historial.
+    """
+    # Obtener todos los movimientos ordenados por fecha de registro (más reciente primero)
+    movimientos = MovimientoCaja.objects.all().order_by('-fecha_registro', '-id')
+    
+    # Calcular KPIs
+    total_ingresos = sum(m.monto for m in movimientos if m.tipo == 'INGRESO')
+    total_gastos = sum(m.monto for m in movimientos if m.tipo == 'GASTO')
+    saldo_actual = total_ingresos - total_gastos
+    
+    context = {
+        'movimientos': movimientos,
+        'total_ingresos': total_ingresos,
+        'total_gastos': total_gastos,
+        'saldo_actual': saldo_actual,
+        'hoy': date.today()
+    }
+    return render(request, 'gestion/gestor_gastos.html', context)
+
+@login_required
+def registrar_movimiento_view(request):
+    """
+    Vista que procesa el formulario modalidad POST unicamente
+    para registrar un nuevo Ingreso o Gasto en la caja.
+    """
+    if request.method == 'POST':
+        tipo = request.POST.get('tipo', '')
+        monto_str = request.POST.get('monto', '0')
+        fecha = request.POST.get('fecha', '')
+        descripcion = request.POST.get('descripcion', '')
+        
+        try:
+            monto = Decimal(monto_str.replace(',', '.'))
+            
+            if monto <= 0:
+                messages.error(request, "El monto debe ser mayor a 0.")
+                return redirect('gestor_gastos')
+                
+            if tipo not in ['INGRESO', 'GASTO']:
+                messages.error(request, "Tipo de movimiento no válido.")
+                return redirect('gestor_gastos')
+                
+            # Validar que si es un GASTO, no deje la caja en negativo (opcional/regla de negocio)
+            # if tipo == 'GASTO':
+            #    ingresos = sum(m.monto for m in MovimientoCaja.objects.filter(tipo='INGRESO'))
+            #    gastos = sum(m.monto for m in MovimientoCaja.objects.filter(tipo='GASTO'))
+            #    if (ingresos - gastos) < monto:
+            #        messages.error(request, "⚠️ No hay suficientes fondos en caja para este gasto.")
+            #        return redirect('gestor_gastos')
+
+            MovimientoCaja.objects.create(
+                tipo=tipo,
+                monto=monto,
+                fecha=fecha,
+                descripcion=descripcion,
+                registrado_por=request.user
+            )
+            
+            messages.success(request, f"¡{tipo.capitalize()} por ${monto:.2f} registrado con éxito!")
+            
+        except Exception as e:
+            messages.error(request, f"Error al registrar movimiento: {str(e)}")
+            
+    return redirect('gestor_gastos')

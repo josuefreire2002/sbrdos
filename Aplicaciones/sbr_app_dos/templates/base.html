@@ -410,6 +410,14 @@
                     href="{% url 'gestion_lotes' %}">
                     <i class="bi bi-grid-3x3-gap"></i> <span class="sidebar-text">Lotes</span>
                 </a>
+
+                <div class="px-4 mt-2 mb-1 text-uppercase small fw-bold text-white-50 menu-category">Finanzas
+                </div>
+                <a class="nav-link {% if request.resolver_match.url_name == 'gestor_gastos' %}active{% endif %}"
+                    href="{% url 'gestor_gastos' %}">
+                    <i class="bi bi-cash-stack"></i> <span class="sidebar-text">Gestor de Gastos</span>
+                </a>
+
                 {% if user.is_superuser %}
 
                 <div class="px-4 mt-2 mb-1 text-uppercase small fw-bold text-white-50 menu-category">

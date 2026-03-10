@@ -226,7 +226,8 @@
 
                             <td class="text-center fw-bold text-muted">{{ forloop.counter }}</td>
 
-                            <td>
+                            <td
+                                data-sort="{% if contrato %}{{ contrato.fecha_contrato|date:'Y-m-d' }}{% else %}0000-00-00{% endif %}">
                                 {% if contrato %}
                                 <span class="text-nowrap">{{ contrato.fecha_contrato|date:"d/m/Y" }}</span>
                                 {% else %}
@@ -489,6 +490,7 @@
             pageLength: 10,
             searching: true,
             ordering: true,
+            order: [[1, 'asc']], // Sort by "F/Contrato" column ascending
             info: true,
             autoWidth: false,
             responsive: false,

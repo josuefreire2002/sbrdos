@@ -286,3 +286,24 @@ class LogActividad(models.Model):
         verbose_name = "Log de Actividad"
         verbose_name_plural = "Logs de Actividad"
         ordering = ['-fecha']
+
+class MovimientoCaja(models.Model):
+    TIPO_CHOICES = [
+        ('INGRESO', 'Ingreso'),
+        ('GASTO', 'Gasto'),
+    ]
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
+    monto = models.DecimalField(max_digits=12, decimal_places=2)
+    fecha = models.DateField()
+    descripcion = models.TextField(blank=True, null=True)
+    
+    registrado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.descripcion:
+            self.descripcion = bleach.clean(self.descripcion, tags=[], attributes={}, strip=True)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.tipo} - ${self.monto} ({self.fecha})"

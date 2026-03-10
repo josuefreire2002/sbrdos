@@ -60,4 +60,8 @@ urlpatterns = [
     
     # Control manual de mora
     path('cuota/<int:cuota_id>/toggle-mora/', views.toggle_mora_cuota, name='toggle_mora_cuota'),
+    
+    # Gestor de Gastos y Flujo de Caja
+    path('caja/', views.gestor_gastos_view, name='gestor_gastos'),
+    path('caja/registrar/', views.registrar_movimiento_view, name='registrar_movimiento'),
 ]
