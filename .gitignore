@@ -5,6 +5,7 @@ db.sqlite3
 db.sqlite3-journal
 media/
 .env
+settings.py
 
 # Python
 __pycache__/
