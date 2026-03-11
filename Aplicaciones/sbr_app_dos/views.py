@@ -1000,7 +1000,12 @@ def reporte_general_view(request):
             mes_fin = mes_inicio + relativedelta(months=1) - relativedelta(days=1)
             
             total_mes = Decimal('0.00')
+            pago_entrada = contrato.pago_set.order_by('id').first()
             for pago in contrato.pago_set.all():
+                # Evitar que el Abono (Entrada) se sume a los meses de las cuotas
+                if pago.es_entrada or (pago == pago_entrada and not pago.detalles.exists()):
+                    continue
+                
                 cuota_raiz = pago_inicio_map.get(pago.id)
                 # Failsafe para pagos antiguos sin DetallePago
                 if not cuota_raiz and pago.cuota_origen:
@@ -1025,7 +1030,11 @@ def reporte_general_view(request):
                 
         # Calcular total_pagado del rango seleccionado basándose en la CUOTA RAÍZ
         total_pagado_rango = Decimal('0.00')
+        pago_entrada = contrato.pago_set.order_by('id').first()
         for pago in contrato.pago_set.all():
+            if pago.es_entrada or (pago == pago_entrada and not pago.detalles.exists()):
+                continue
+                
             cuota_raiz = pago_inicio_map.get(pago.id)
             if not cuota_raiz and pago.cuota_origen:
                 cuota_raiz = pago.cuota_origen
@@ -1150,7 +1159,11 @@ def reporte_general_pdf_view(request):
             
             # Calcular en base a la Cuota Raíz
             total_mes = Decimal('0.00')
+            pago_entrada = contrato.pago_set.order_by('id').first()
             for pago in contrato.pago_set.all():
+                if pago.es_entrada or (pago == pago_entrada and not pago.detalles.exists()):
+                    continue
+                    
                 cuota_raiz = pago_inicio_map.get(pago.id)
                 if not cuota_raiz and pago.cuota_origen:
                     cuota_raiz = pago.cuota_origen
@@ -1173,7 +1186,12 @@ def reporte_general_pdf_view(request):
         # Calcular total_pagado del rango seleccionado basándose en la CUOTA RAÍZ
         total_pagado_rango = Decimal('0.00')
         hasta_fin_de_mes_range = hasta.replace(day=1) + relativedelta(months=1) - relativedelta(days=1)
+        
+        pago_entrada = contrato.pago_set.order_by('id').first()
         for pago in contrato.pago_set.all():
+            if pago.es_entrada or (pago == pago_entrada and not pago.detalles.exists()):
+                continue
+                
             cuota_raiz = pago_inicio_map.get(pago.id)
             if not cuota_raiz and pago.cuota_origen:
                 cuota_raiz = pago.cuota_origen
