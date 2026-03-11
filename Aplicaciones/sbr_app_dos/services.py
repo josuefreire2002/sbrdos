@@ -357,8 +357,8 @@ def recalcular_deuda_contrato(contrato_id):
     """
     contrato = Contrato.objects.get(id=contrato_id)
     
-    # 1. Resetear valor_pagado de TODAS las cuotas
-    contrato.cuotas.all().update(valor_pagado=0, fecha_ultimo_pago=None)
+    # 1. Resetear valor_pagado y mora de TODAS las cuotas
+    contrato.cuotas.all().update(valor_pagado=0, fecha_ultimo_pago=None, valor_mora=0, estado='PENDIENTE')
         
     # Destruir registros de detalles de pago (ya que se regenerarán)
     from .models import DetallePago
@@ -380,6 +380,28 @@ def recalcular_deuda_contrato(contrato_id):
         # Punto de inicio para distribuir el pago
         start_num = pago.cuota_origen.numero_cuota if pago.cuota_origen else 1
         cuotas_afectadas = contrato.cuotas.filter(numero_cuota__gte=start_num).order_by('numero_cuota')
+        
+        # --- VIAJE EN EL TIEMPO: Aplicar moras vigentes HASTA la fecha de este pago ---
+        config = ConfiguracionSistema.objects.first()
+        porcentaje_mora = config.mora_porcentaje if config else Decimal('3.00')
+        
+        for cuota in cuotas_afectadas:
+             # Si en la fecha que se hizo este pago, esta cuota ya estaba vencida:
+             if cuota.fecha_vencimiento < fecha_pago:
+                  if not cuota.mora_exenta:
+                       # Calcular Mora Única (Porcentual)
+                       mora_calcular = (cuota.valor_capital * porcentaje_mora) / Decimal('100.00')
+                       mora_calcular = mora_calcular.quantize(Decimal('0.01'), rounding='ROUND_HALF_UP')
+                       if mora_calcular < Decimal('0.01') and porcentaje_mora > 0:
+                            mora_calcular = Decimal('0.01')
+                       
+                       # Solo aplicar si la cuota no estaba ya pagada en su totalidad en ese viaje en el tiempo
+                       saldo = cuota.valor_capital - cuota.valor_pagado
+                       if saldo > Decimal('0.01'):
+                            cuota.valor_mora = mora_calcular
+                            cuota.estado = 'VENCIDO'
+                            cuota.save(update_fields=['valor_mora', 'estado'])
+        # -----------------------------------------------------------------------------
         
         # Refrescar cuotas desde la BD para tener datos actualizados
         for cuota in cuotas_afectadas:
