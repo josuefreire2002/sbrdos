@@ -280,6 +280,12 @@ def detalle_contrato_view(request, pk):
                  origenes.add(inicio_num)
         
         c.lista_origenes = sorted(list(origenes))
+        
+        # Failsafe para pagos antiguos sin DetallePago:
+        # Si la cuota tiene dinero pagado pero no registraba pago_raiz,
+        # mostramos el dinero pagado directamente para evitar que salga $0 en la tabla.
+        if c.monto_real_abonado == 0 and c.valor_pagado > 0:
+            c.monto_real_abonado = c.valor_pagado
 
 
     context = {
@@ -996,9 +1002,18 @@ def reporte_general_view(request):
             total_mes = Decimal('0.00')
             for pago in contrato.pago_set.all():
                 cuota_raiz = pago_inicio_map.get(pago.id)
+                # Failsafe para pagos antiguos sin DetallePago
+                if not cuota_raiz and pago.cuota_origen:
+                    cuota_raiz = pago.cuota_origen
+                
                 # Si el pago pertenece a una cuota y esa cuota VENCE en este mes iterado
-                if cuota_raiz and mes_inicio <= cuota_raiz.fecha_vencimiento <= mes_fin:
-                    total_mes += pago.monto
+                if cuota_raiz:
+                    if mes_inicio <= cuota_raiz.fecha_vencimiento <= mes_fin:
+                        total_mes += pago.monto
+                else:
+                    # Ultimo recurso si ni siquiera tiene cuota_origen: usar fecha de pago
+                    if mes_inicio <= pago.fecha_pago <= mes_fin:
+                        total_mes += pago.monto
             
             row['pagos_mensuales'].append(total_mes)
             
@@ -1012,8 +1027,15 @@ def reporte_general_view(request):
         total_pagado_rango = Decimal('0.00')
         for pago in contrato.pago_set.all():
             cuota_raiz = pago_inicio_map.get(pago.id)
-            if cuota_raiz and desde <= cuota_raiz.fecha_vencimiento <= hasta:
-                total_pagado_rango += pago.monto
+            if not cuota_raiz and pago.cuota_origen:
+                cuota_raiz = pago.cuota_origen
+                
+            if cuota_raiz:
+                if desde <= cuota_raiz.fecha_vencimiento <= hasta:
+                    total_pagado_rango += pago.monto
+            else:
+                 if desde <= pago.fecha_pago <= hasta:
+                    total_pagado_rango += pago.monto
                 
         row['total_pagado'] = total_pagado_rango
         
@@ -1130,8 +1152,15 @@ def reporte_general_pdf_view(request):
             total_mes = Decimal('0.00')
             for pago in contrato.pago_set.all():
                 cuota_raiz = pago_inicio_map.get(pago.id)
-                if cuota_raiz and mes_inicio <= cuota_raiz.fecha_vencimiento <= mes_fin:
-                    total_mes += pago.monto
+                if not cuota_raiz and pago.cuota_origen:
+                    cuota_raiz = pago.cuota_origen
+                    
+                if cuota_raiz:
+                    if mes_inicio <= cuota_raiz.fecha_vencimiento <= mes_fin:
+                        total_mes += pago.monto
+                else:
+                    if mes_inicio <= pago.fecha_pago <= mes_fin:
+                        total_mes += pago.monto
                     
             row['pagos_mensuales'].append(total_mes)
             
@@ -1146,8 +1175,15 @@ def reporte_general_pdf_view(request):
         hasta_fin_de_mes_range = hasta.replace(day=1) + relativedelta(months=1) - relativedelta(days=1)
         for pago in contrato.pago_set.all():
             cuota_raiz = pago_inicio_map.get(pago.id)
-            if cuota_raiz and desde.replace(day=1) <= cuota_raiz.fecha_vencimiento <= hasta_fin_de_mes_range:
-                total_pagado_rango += pago.monto
+            if not cuota_raiz and pago.cuota_origen:
+                cuota_raiz = pago.cuota_origen
+                
+            if cuota_raiz:
+                if desde.replace(day=1) <= cuota_raiz.fecha_vencimiento <= hasta_fin_de_mes_range:
+                    total_pagado_rango += pago.monto
+            else:
+                if desde.replace(day=1) <= pago.fecha_pago <= hasta_fin_de_mes_range:
+                    total_pagado_rango += pago.monto
                 
         row['total_pagado'] = total_pagado_rango
         

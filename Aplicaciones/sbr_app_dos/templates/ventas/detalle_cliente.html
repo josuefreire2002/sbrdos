@@ -35,17 +35,17 @@
                             <!-- Status actions (smaller) -->
                             <button type="button" class="btn btn-sm btn-outline-success"
                                 onclick="if(confirm('¿Estás seguro de CULMINAR este contrato?')) document.getElementById('formCerrar').submit();"
-                                {% if contrato.estado != 'ACTIVO' or not puede_cerrar %}disabled{% endif %}>
+                                {% if contrato.estado !='ACTIVO' or not puede_cerrar %}disabled{% endif %}>
                                 <i class="bi bi-check-circle"></i> Culminar
                             </button>
                             <button type="button" class="btn btn-sm btn-outline-danger"
                                 onclick="if(confirm('¿Cancelar este contrato?')) document.getElementById('formCancelar').submit();"
-                                {% if contrato.estado != 'ACTIVO' %}disabled{% endif %}>
+                                {% if contrato.estado !='ACTIVO' %}disabled{% endif %}>
                                 <i class="bi bi-x-circle"></i> Cancelar
                             </button>
                             <button type="button" class="btn btn-sm btn-outline-warning"
                                 onclick="if(confirm('¿Registrar devolución?')) document.getElementById('formDevolucion').submit();"
-                                {% if contrato.estado != 'ACTIVO' %}disabled{% endif %}>
+                                {% if contrato.estado !='ACTIVO' %}disabled{% endif %}>
                                 <i class="bi bi-arrow-counterclockwise"></i> Devolución
                             </button>
 
@@ -266,7 +266,7 @@
                             {% endif %}
                         </td>
                         <td class="text-end fw-bold">${{ cuota.total_a_pagar|intcomma }}</td>
-                        <td class="text-end text-success fw-medium">${{ cuota.monto_real_abonado|intcomma }}</td>
+                        <td class="text-end text-success fw-medium">${{ cuota.valor_pagado|intcomma }}</td>
                         <td class="text-end fw-bold text-dark">${{ cuota.saldo_pendiente|intcomma }}</td>
                         <td class="text-center">
                             {% if cuota.estado == 'PAGADO' %}
@@ -568,7 +568,8 @@
                     <div class="list-group-item px-0 border-bottom">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <span class="fw-bold text-primary"> Pago #{{ detalle.pago.numero_transaccion }}</span>
-                            {% if detalle.pago.cuota_inicial_numero and detalle.pago.cuota_inicial_numero != cuota.numero_cuota %}
+                            {% if detalle.pago.cuota_inicial_numero and detalle.pago.cuota_inicial_numero !=
+                            cuota.numero_cuota %}
                             <span class="text-muted small ms-1 fst-italic">
                                 (pagado en Cuota #{{ detalle.pago.cuota_inicial_numero }})
                             </span>
