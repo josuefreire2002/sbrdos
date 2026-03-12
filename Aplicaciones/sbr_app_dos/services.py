@@ -112,6 +112,62 @@ def generar_tabla_amortizacion(contrato_id, fecha_inicio_pago_str=None):
 # ==========================================
 # En services.py -> reemplazar la función actualizar_moras_contrato
 
+def actualizar_moras_masivo(contratos_qs):
+    """
+    Versión de ultra-alto rendimiento para actualizar la mora de múltiples contratos a la vez.
+    Ideal para usar en vistas de listados de clientes donde iterar uno a uno sobrecarga la BD.
+    """
+    hoy = date.today()
+    config = ConfiguracionSistema.objects.first()
+    porcentaje_mora = config.mora_porcentaje if config else Decimal('3.00')
+
+    # Filtrar cuotas candidatas a cambiar
+    cuotas = Cuota.objects.filter(
+        contrato__in=contratos_qs,
+        estado__in=['PENDIENTE', 'PARCIAL', 'VENCIDO']
+    )
+    
+    cuotas_a_actualizar = []
+    
+    for cuota in cuotas:
+        # Si la fecha de vencimiento es MENOR a hoy, YA VENCIÓ.
+        if cuota.fecha_vencimiento < hoy:
+            mora_calcular = Decimal('0.00')
+
+            # Respetar exención manual de mora
+            if cuota.mora_exenta:
+                nuevo_estado = 'PENDIENTE' if cuota.saldo_pendiente > 0 else 'PAGADO'
+                if cuota.estado != nuevo_estado or cuota.valor_mora != mora_calcular:
+                    cuota.estado = nuevo_estado
+                    cuota.valor_mora = mora_calcular
+                    cuotas_a_actualizar.append(cuota)
+                continue
+            
+            # Calcular Mora Única (Porcentual)
+            mora_calcular = (cuota.valor_capital * porcentaje_mora) / Decimal('100.00')
+            mora_calcular = mora_calcular.quantize(Decimal('0.01'), rounding='ROUND_HALF_UP')
+            
+            # Asegurar mínimo de $0.01 si el porcentaje dio 0 por ser cuota muy pequeña
+            if mora_calcular < Decimal('0.01') and porcentaje_mora > 0:
+                mora_calcular = Decimal('0.01')
+
+            # Actualizar estado y mora
+            if cuota.estado != 'VENCIDO' or cuota.valor_mora != mora_calcular:
+                cuota.estado = 'VENCIDO'
+                cuota.valor_mora = mora_calcular
+                cuotas_a_actualizar.append(cuota)
+                
+    if cuotas_a_actualizar:
+        Cuota.objects.bulk_update(cuotas_a_actualizar, ['estado', 'valor_mora'])
+
+    # Actualizar bandera global de los contratos
+    contratos_con_mora = set(Cuota.objects.filter(
+        contrato__in=contratos_qs, estado='VENCIDO'
+    ).values_list('contrato_id', flat=True))
+
+    contratos_qs.filter(id__in=contratos_con_mora).exclude(esta_en_mora=True).update(esta_en_mora=True)
+    contratos_qs.exclude(id__in=contratos_con_mora).filter(esta_en_mora=True).update(esta_en_mora=False)
+
 def actualizar_moras_contrato(contrato_id):
     """
     Versión corregida: Marca VENCIDO inmediatamente si pasa la fecha,

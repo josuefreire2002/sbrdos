@@ -35,17 +35,17 @@
                             <!-- Status actions (smaller) -->
                             <button type="button" class="btn btn-sm btn-outline-success"
                                 onclick="if(confirm('¿Estás seguro de CULMINAR este contrato?')) document.getElementById('formCerrar').submit();"
-                                {% if contrato.estado !='ACTIVO' or not puede_cerrar %}disabled{% endif %}>
+                                {% if contrato.estado != 'ACTIVO' or not puede_cerrar %}disabled{% endif %}>
                                 <i class="bi bi-check-circle"></i> Culminar
                             </button>
                             <button type="button" class="btn btn-sm btn-outline-danger"
                                 onclick="if(confirm('¿Cancelar este contrato?')) document.getElementById('formCancelar').submit();"
-                                {% if contrato.estado !='ACTIVO' %}disabled{% endif %}>
+                                {% if contrato.estado != 'ACTIVO' %}disabled{% endif %}>
                                 <i class="bi bi-x-circle"></i> Cancelar
                             </button>
                             <button type="button" class="btn btn-sm btn-outline-warning"
                                 onclick="if(confirm('¿Registrar devolución?')) document.getElementById('formDevolucion').submit();"
-                                {% if contrato.estado !='ACTIVO' %}disabled{% endif %}>
+                                {% if contrato.estado != 'ACTIVO' %}disabled{% endif %}>
                                 <i class="bi bi-arrow-counterclockwise"></i> Devolución
                             </button>
 
@@ -325,15 +325,25 @@
                         {% if user.is_superuser %}
                         <td class="text-end pe-4 d-print-none">
                             <div class="btn-group">
-                                <a href="{% url 'editar_cuota' cuota.id %}" class="btn btn-sm btn-outline-warning"
+                                {% with pagos_cuota=cuota.pagos_asociados.all %}
+                                {% if pagos_cuota|length == 1 %}
+                                <a href="{% url 'editar_pago' pagos_cuota.0.pago.id %}"
+                                    class="btn btn-sm btn-outline-warning" title="Editar Pago">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% elif pagos_cuota|length > 1 %}
+                                <button type="button" class="btn btn-sm btn-outline-warning" data-bs-toggle="modal"
+                                    data-bs-target="#modalSeleccionPago{{ cuota.id }}"
+                                    title="Seleccionar pago a editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                {% else %}
+                                <a href="{% url 'editar_cuota' cuota.id %}" class="btn btn-sm btn-outline-secondary"
                                     title="Editar Cuota">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <!--<button type="button" class="btn btn-sm btn-outline-danger"
-                                    onclick="if(confirm('¿ELIMINAR Cuota #{{ cuota.numero_cuota }}? Se recalculará toda la deuda.')) document.getElementById('del_cuota_{{ cuota.id }}').submit();"
-                                    title="Eliminar Cuota">
-                                    <i class="bi bi-trash"></i>
-                                </button>-->
+                                {% endif %}
+                                {% endwith %}
                             </div>
                             <form id="del_cuota_{{ cuota.id }}" action="{% url 'eliminar_cuota' cuota.id %}"
                                 method="POST" style="display:none;">{% csrf_token %}</form>
@@ -345,6 +355,55 @@
             </table>
         </div>
     </div>
+
+    {# ── Modales de selección de pago (fuera de la tabla para evitar z-index issues) ── #}
+    {% for cuota in cuotas %}
+    {% with pagos_cuota=cuota.pagos_asociados.all %}
+    {% if pagos_cuota|length > 1 %}
+    <div class="modal fade" id="modalSeleccionPago{{ cuota.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning bg-opacity-10">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-pencil me-2"></i>Seleccionar Pago — Cuota #{{ cuota.numero_cuota }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Esta cuota tiene <strong>{{ pagos_cuota|length }} pagos</strong> asociados.
+                        Elige cuál deseas editar:
+                    </p>
+                    <div class="list-group">
+                        {% for dp in pagos_cuota %}
+                        <a href="{% url 'editar_pago' dp.pago.id %}"
+                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="fw-bold">Pago #{{ dp.pago.id }}</span>
+                                <small class="text-muted ms-2">{{ dp.pago.fecha_pago|date:"d/m/Y" }}</small>
+                                <span class="badge bg-secondary-subtle text-secondary ms-1 small">
+                                    {{ dp.pago.metodo_pago }}
+                                </span>
+                            </div>
+                            <div class="text-end">
+                                <span class="text-success fw-bold">${{ dp.pago.monto|floatformat:2 }}</span>
+                                <small class="text-muted d-block">
+                                    aplicado: ${{ dp.monto_aplicado|floatformat:2 }}
+                                </small>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="modal-footer py-1 bg-light">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% endfor %}
     <!-- Print Only Signatures -->
     <div class="d-none d-print-block mt-5 mb-5 w-100">
         <div class="row pt-5">
@@ -382,6 +441,9 @@
                         <th>Observación</th>
                         <th class="text-center">Respaldo</th>
                         <th class="text-center">Distribución</th>
+                        {% if user.is_superuser %}
+                        <th class="text-center">Acciones</th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody class="border-top-0">
@@ -468,6 +530,18 @@
                             </div>
 
                         </td>
+                        {% if user.is_superuser %}
+                        <td class="text-center">
+                            {% if not pago.es_entrada %}
+                            <a href="{% url 'editar_pago' pago.id %}" class="btn btn-sm btn-outline-warning"
+                                title="Editar este pago">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% else %}
+                            <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
                     </tr>
                     {% empty %}
                     <tr>
@@ -568,8 +642,7 @@
                     <div class="list-group-item px-0 border-bottom">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <span class="fw-bold text-primary"> Pago #{{ detalle.pago.numero_transaccion }}</span>
-                            {% if detalle.pago.cuota_inicial_numero and detalle.pago.cuota_inicial_numero !=
-                            cuota.numero_cuota %}
+                            {% if detalle.pago.cuota_inicial_numero and detalle.pago.cuota_inicial_numero != cuota.numero_cuota %}
                             <span class="text-muted small ms-1 fst-italic">
                                 (pagado en Cuota #{{ detalle.pago.cuota_inicial_numero }})
                             </span>

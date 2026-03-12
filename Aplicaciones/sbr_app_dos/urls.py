@@ -29,6 +29,7 @@ urlpatterns = [
     # --- GESTIÓN DE CUOTAS (Editar/Eliminar) ---
     path('cuota/<int:pk>/editar/', views.editar_cuota_view, name='editar_cuota'),
     path('cuota/<int:pk>/eliminar/', views.eliminar_cuota_view, name='eliminar_cuota'),
+    path('pago/<int:pago_id>/editar/', views.editar_pago_view, name='editar_pago'),
 
     # --- REPORTES Y ARCHIVOS ---
     # Ruta para descargar el PDF generado (WeasyPrint)

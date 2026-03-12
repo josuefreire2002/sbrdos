@@ -26,18 +26,18 @@
             <form method="get" class="d-flex gap-2 align-items-center bg-white p-2 rounded shadow-sm border">
                 <select name="mes" class="form-select form-select-sm" required>
                     <option value="anual" {% if es_anual %}selected{% endif %}>Todo el Año (Anual)</option>
-                    <option value="1" {% if mes_actual == 1 %}selected{% endif %}>Enero</option>
-                    <option value="2" {% if mes_actual == 2 %}selected{% endif %}>Febrero</option>
-                    <option value="3" {% if mes_actual == 3 %}selected{% endif %}>Marzo</option>
-                    <option value="4" {% if mes_actual == 4 %}selected{% endif %}>Abril</option>
-                    <option value="5" {% if mes_actual == 5 %}selected{% endif %}>Mayo</option>
-                    <option value="6" {% if mes_actual == 6 %}selected{% endif %}>Junio</option>
-                    <option value="7" {% if mes_actual == 7 %}selected{% endif %}>Julio</option>
-                    <option value="8" {% if mes_actual == 8 %}selected{% endif %}>Agosto</option>
-                    <option value="9" {% if mes_actual == 9 %}selected{% endif %}>Septiembre</option>
-                    <option value="10" {% if mes_actual == 10 %}selected{% endif %}>Octubre</option>
-                    <option value="11" {% if mes_actual == 11 %}selected{% endif %}>Noviembre</option>
-                    <option value="12" {% if mes_actual == 12 %}selected{% endif %}>Diciembre</option>
+                    <option value="1" {% if mes_actual==1 %}selected{% endif %}>Enero</option>
+                    <option value="2" {% if mes_actual==2 %}selected{% endif %}>Febrero</option>
+                    <option value="3" {% if mes_actual==3 %}selected{% endif %}>Marzo</option>
+                    <option value="4" {% if mes_actual==4 %}selected{% endif %}>Abril</option>
+                    <option value="5" {% if mes_actual==5 %}selected{% endif %}>Mayo</option>
+                    <option value="6" {% if mes_actual==6 %}selected{% endif %}>Junio</option>
+                    <option value="7" {% if mes_actual==7 %}selected{% endif %}>Julio</option>
+                    <option value="8" {% if mes_actual==8 %}selected{% endif %}>Agosto</option>
+                    <option value="9" {% if mes_actual==9 %}selected{% endif %}>Septiembre</option>
+                    <option value="10" {% if mes_actual==10 %}selected{% endif %}>Octubre</option>
+                    <option value="11" {% if mes_actual==11 %}selected{% endif %}>Noviembre</option>
+                    <option value="12" {% if mes_actual==12 %}selected{% endif %}>Diciembre</option>
                 </select>
                 <input type="number" name="anio" class="form-control form-control-sm" value="{{ anio_actual }}"
                     min="2020" max="2100" style="width: 80px;" required>
@@ -56,26 +56,28 @@
         </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="col-12 col-md-6 col-xl-4">
+    <!-- Card: Total Cobrado (abono + cuotas unificado) -->
+    <div class="col-12 col-md-6 col-xl-3">
         <div class="card border-0 border-top border-4 border-success shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
                         <h6 class="text-muted text-uppercase x-small fw-bold mb-1"
-                            title="Dinero real ingresado este mes">Ingresos Cobrados (Real)</h6>
-                        <h2 class="fw-bold mb-0 text-success">${{ total_ingresos|intcomma }}</h2>
+                            title="Todo el dinero recibido este mes (cuotas + abono inicial)">Total Cobrado</h6>
+                        <h2 class="fw-bold mb-0 text-success">${{ total_cobrado_mes|intcomma }}</h2>
                     </div>
                     <i class="bi bi-cash-coin text-success opacity-25 fs-1"></i>
                 </div>
                 <div class="p-2 bg-success-subtle text-success rounded-3 small fw-medium">
-                    <i class="bi bi-check-circle me-1"></i> {{ ingresos_lista|length }} cliente(s) pagaron
+                    <i class="bi bi-check-circle me-1"></i>
+                    Cuotas: ${{ total_ingresos|intcomma }}
+                    {% if total_entradas > 0 %}&nbsp;+&nbsp;Entradas: ${{ total_entradas|intcomma }}{% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-12 col-md-6 col-xl-4">
+    <div class="col-12 col-md-6 col-xl-3">
         <div class="card border-0 border-top border-4 border-primary shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
@@ -93,7 +95,7 @@
         </div>
     </div>
 
-    <div class="col-12 col-md-6 col-xl-4">
+    <div class="col-12 col-md-6 col-xl-3">
         <div class="card border-0 border-top border-4 border-danger shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
@@ -113,11 +115,12 @@
 
 
 
-    <!-- Ingresos Table -->
+    <!-- Tabla unificada de Cobros del Mes (cuotas + abono inicial) -->
     <div class="col-12">
         <div class="card border-0 shadow-sm overflow-hidden">
-            <div class="card-header bg-success text-white py-3 px-4">
-                <h5 class="fw-bold mb-0"><i class="bi bi-arrow-up-circle me-2"></i>Detalle de Ingresos</h5>
+            <div class="card-header bg-success text-white py-3 px-4 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0"><i class="bi bi-cash-coin me-2"></i>Cobros del Mes (Cash Flow)</h5>
+                <span class="badge bg-white text-success fs-6 fw-bold">Total: ${{ total_cobrado_mes|intcomma }}</span>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -125,29 +128,69 @@
                         <tr class="text-uppercase x-small text-muted fw-bold">
                             <th class="ps-4">Cliente</th>
                             <th>Lote</th>
-                            <th class="text-end pe-4">Monto Pagado</th>
+                            <th class="text-center">Fecha</th>
+                            <th class="text-center">Cuota(s)</th>
+                            <th class="text-center">Método</th>
+                            <th class="text-end">Abono Inicial</th>
+                            <th class="text-end">Cuotas</th>
+                            <th class="text-end pe-4">Total Cobrado</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in ingresos_lista %}
-                        <tr>
+                        {% for item in cobros_lista %}
+                        <tr class="{% if item.es_entrada %}table-info bg-opacity-25{% endif %}">
                             <td class="ps-4">
                                 <span class="fw-medium">{{ item.cliente.apellidos }} {{ item.cliente.nombres }}</span>
                                 <div class="text-muted x-small">{{ item.cliente.cedula }}</div>
                             </td>
                             <td>Mz {{ item.contrato.lote.manzana }} - Lote {{ item.contrato.lote.numero_lote }}</td>
-                            <td class="text-end pe-4 fw-bold text-success">${{ item.total_pagado|intcomma }}</td>
+                            <td class="text-center text-nowrap">{{ item.fecha_pago|date:"d/m/Y" }}</td>
+                            <td class="text-center">
+                                {% if item.es_entrada %}
+                                <span class="badge bg-info">Entrada</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ item.cuotas_cubiertas }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <span
+                                    class="badge {% if item.metodo == 'EFECTIVO' %}bg-success-subtle text-success{% else %}bg-primary-subtle text-primary{% endif %}">
+                                    {{ item.metodo }}
+                                </span>
+                            </td>
+                            <td class="text-end text-info fw-medium">
+                                {% if item.monto_entrada > 0 %}
+                                ${{ item.monto_entrada|floatformat:2|intcomma }}
+                                {% else %}<span class="text-muted">-</span>{% endif %}
+                            </td>
+                            <td class="text-end text-primary fw-medium">
+                                {% if item.monto_cuotas > 0 %}
+                                ${{ item.monto_cuotas|floatformat:2|intcomma }}
+                                {% else %}<span class="text-muted">-</span>{% endif %}
+                            </td>
+                            <td class="text-end pe-4 fw-bold text-success">
+                                ${{ item.total_cobrado|floatformat:2|intcomma }}
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="3" class="text-center py-4 text-muted">No hay pagos registrados este mes.</td>
+                            <td colspan="8" class="text-center py-4 text-muted">No hay cobros registrados este mes.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
+                    <tfoot class="table-light">
+                        <tr class="fw-bold">
+                            <td colspan="5" class="ps-4 text-muted text-uppercase small">TOTAL</td>
+                            <td class="text-end text-info">${{ total_entradas|intcomma }}</td>
+                            <td class="text-end text-primary">${{ total_ingresos|intcomma }}</td>
+                            <td class="text-end pe-4 text-success">${{ total_cobrado_mes|intcomma }}</td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
     </div>
+
 
     <!-- Proyeccion Table -->
     <div class="col-12">
