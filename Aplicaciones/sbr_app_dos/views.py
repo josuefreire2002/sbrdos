@@ -1085,10 +1085,11 @@ def reporte_general_view(request):
         # Sumar el valor de entrada siempre, sin importar el rango de fechas
         row['total_pagado'] = contrato.valor_entrada or Decimal('0.00')
 
-        # Ubicar la entrada en la columna del mes en que ocurrió (si aplica)
+        # Ubicar la entrada en el mes correspondiente (COMENTADO: El usuario no quiere ver la entrada en la matriz de meses)
+        # Esto evita que aparezca como una "cuota gigante" en el reporte
+        """
         pago_entrada_obj = contrato.pago_set.filter(es_entrada=True).order_by('id').first()
         if not pago_entrada_obj:
-            # Fallback: primer pago como entrada
             pago_entrada_obj = contrato.pago_set.order_by('id').first()
         if pago_entrada_obj:
             fecha_entrada = pago_entrada_obj.fecha_pago
@@ -1103,6 +1104,11 @@ def reporte_general_view(request):
                     else:
                         totales_mensuales[i] -= monto_e
                     break
+        """
+        pago_entrada_obj = contrato.pago_set.filter(es_entrada=True).order_by('id').first()
+        if not pago_entrada_obj:
+            pago_entrada_obj = contrato.pago_set.order_by('id').first()
+
 
         # IDs de pagos de entrada para excluirlos del loop principal
         ids_entradas = set(contrato.pago_set.filter(es_entrada=True).values_list('id', flat=True))
@@ -1165,6 +1171,7 @@ def reporte_general_view(request):
         else:
             total_general += row['total_pagado']
         
+        total_saldo += row['saldo_pendiente']
         reporte_data.append(row)
     
     context = {
@@ -1228,6 +1235,10 @@ def reporte_general_pdf_view(request):
     totales_mensuales = [Decimal('0.00') for _ in meses]
     total_general = Decimal('0.00')
     total_cuotas = Decimal('0.00')
+    total_vtotal = Decimal('0.00')
+    total_entrada = Decimal('0.00')
+    total_saldo = Decimal('0.00')
+
     
     for contrato in contratos_qs:
         # Actualizar moras para exactitud financiera
@@ -1239,7 +1250,11 @@ def reporte_general_pdf_view(request):
             fecha_vencimiento__lte=hasta_fin_de_mes
         )
         
+        total_vtotal += contrato.precio_venta_final or Decimal('0.00')
+        total_entrada += contrato.valor_entrada or Decimal('0.00')
+        
         row = {
+
             'contrato': contrato,
             'cliente': contrato.cliente,
             'lote': contrato.lote,
@@ -1263,7 +1278,8 @@ def reporte_general_pdf_view(request):
         row['total_pagado'] = contrato.valor_entrada or Decimal('0.00')
         hasta_fin_de_mes_range = hasta.replace(day=1) + relativedelta(months=1) - relativedelta(days=1)
 
-        # Ubicar la entrada en la columna del mes en que ocurrió (si aplica)
+        # Ubicar la entrada en el mes correspondiente (COMENTADO: El usuario no quiere ver la entrada en la matriz de meses)
+        """
         pago_entrada_obj = contrato.pago_set.filter(es_entrada=True).order_by('id').first()
         if not pago_entrada_obj:
             pago_entrada_obj = contrato.pago_set.order_by('id').first()
@@ -1280,6 +1296,11 @@ def reporte_general_pdf_view(request):
                     else:
                         totales_mensuales[i] -= monto_e
                     break
+        """
+        pago_entrada_obj = contrato.pago_set.filter(es_entrada=True).order_by('id').first()
+        if not pago_entrada_obj:
+            pago_entrada_obj = contrato.pago_set.order_by('id').first()
+
 
         # IDs de pagos de entrada para excluirlos del loop principal
         ids_entradas = set(contrato.pago_set.filter(es_entrada=True).values_list('id', flat=True))
@@ -1351,7 +1372,11 @@ def reporte_general_pdf_view(request):
         'totales_mensuales': totales_mensuales,
         'total_general': total_general,
         'total_cuotas': total_cuotas,
+        'total_entrada': total_entrada,
+        'total_vtotal': total_vtotal,
+        'total_saldo': total_saldo,
     }
+
     
     html_string = render_to_string('reportes/reporte_general_pdf.html', context)
     result_file = BytesIO()
