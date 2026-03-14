@@ -1082,28 +1082,36 @@ def reporte_general_view(request):
         
         # Inicializar los totales de este contrato
         row['pagos_mensuales'] = [Decimal('0.00')] * len(meses)
-        row['total_pagado'] = Decimal('0.00')
+        # Sumar el valor de entrada siempre, sin importar el rango de fechas
+        row['total_pagado'] = contrato.valor_entrada or Decimal('0.00')
 
-        pago_entrada = contrato.pago_set.order_by('id').first()
-        
-        # Procesar cada pago
+        # Ubicar la entrada en la columna del mes en que ocurrió (si aplica)
+        pago_entrada_obj = contrato.pago_set.filter(es_entrada=True).order_by('id').first()
+        if not pago_entrada_obj:
+            # Fallback: primer pago como entrada
+            pago_entrada_obj = contrato.pago_set.order_by('id').first()
+        if pago_entrada_obj:
+            fecha_entrada = pago_entrada_obj.fecha_pago
+            for i, mes in enumerate(meses):
+                mes_inicio = date(mes['year'], mes['month'], 1)
+                mes_fin = mes_inicio + relativedelta(months=1) - relativedelta(days=1)
+                if mes_inicio <= fecha_entrada <= mes_fin:
+                    monto_e = contrato.valor_entrada or Decimal('0.00')
+                    row['pagos_mensuales'][i] += monto_e
+                    if not row['es_devolucion']:
+                        totales_mensuales[i] += monto_e
+                    else:
+                        totales_mensuales[i] -= monto_e
+                    break
+
+        # IDs de pagos de entrada para excluirlos del loop principal
+        ids_entradas = set(contrato.pago_set.filter(es_entrada=True).values_list('id', flat=True))
+        if pago_entrada_obj:
+            ids_entradas.add(pago_entrada_obj.id)
+
+        # Procesar cuotas (excluir pagos de entrada para no duplicar)
         for pago in contrato.pago_set.all():
-            if pago.es_entrada or (pago == pago_entrada and not pago.detalles.exists()):
-                # Incluir la entrada siempre en el total (sin importar el rango de fechas)
-                fecha_entrada = pago.fecha_pago
-                monto_entrada = pago.monto
-                for i, mes in enumerate(meses):
-                    mes_inicio = date(mes['year'], mes['month'], 1)
-                    mes_fin = mes_inicio + relativedelta(months=1) - relativedelta(days=1)
-                    if mes_inicio <= fecha_entrada <= mes_fin:
-                        row['pagos_mensuales'][i] += monto_entrada
-                        if not row['es_devolucion']:
-                            totales_mensuales[i] += monto_entrada
-                        else:
-                            totales_mensuales[i] -= monto_entrada
-                        break
-                # Siempre sumar la entrada al total pagado
-                row['total_pagado'] += monto_entrada
+            if pago.id in ids_entradas:
                 continue
                 
             detalles = pago.detalles.select_related('cuota')
@@ -1251,29 +1259,36 @@ def reporte_general_pdf_view(request):
         
         # Inicializar los totales de este contrato
         row['pagos_mensuales'] = [Decimal('0.00')] * len(meses)
-        row['total_pagado'] = Decimal('0.00')
+        # Sumar el valor de entrada siempre, sin importar el rango de fechas
+        row['total_pagado'] = contrato.valor_entrada or Decimal('0.00')
         hasta_fin_de_mes_range = hasta.replace(day=1) + relativedelta(months=1) - relativedelta(days=1)
 
-        pago_entrada = contrato.pago_set.order_by('id').first()
-        
-        # Procesar cada pago
+        # Ubicar la entrada en la columna del mes en que ocurrió (si aplica)
+        pago_entrada_obj = contrato.pago_set.filter(es_entrada=True).order_by('id').first()
+        if not pago_entrada_obj:
+            pago_entrada_obj = contrato.pago_set.order_by('id').first()
+        if pago_entrada_obj:
+            fecha_entrada = pago_entrada_obj.fecha_pago
+            for i, mes in enumerate(meses):
+                mes_inicio = date(mes['year'], mes['month'], 1)
+                mes_fin = mes_inicio + relativedelta(months=1) - relativedelta(days=1)
+                if mes_inicio <= fecha_entrada <= mes_fin:
+                    monto_e = contrato.valor_entrada or Decimal('0.00')
+                    row['pagos_mensuales'][i] += monto_e
+                    if not row['es_devolucion']:
+                        totales_mensuales[i] += monto_e
+                    else:
+                        totales_mensuales[i] -= monto_e
+                    break
+
+        # IDs de pagos de entrada para excluirlos del loop principal
+        ids_entradas = set(contrato.pago_set.filter(es_entrada=True).values_list('id', flat=True))
+        if pago_entrada_obj:
+            ids_entradas.add(pago_entrada_obj.id)
+
+        # Procesar cuotas (excluir pagos de entrada para no duplicar)
         for pago in contrato.pago_set.all():
-            if pago.es_entrada or (pago == pago_entrada and not pago.detalles.exists()):
-                # Incluir la entrada siempre en el total (sin importar el rango de fechas)
-                fecha_entrada = pago.fecha_pago
-                monto_entrada = pago.monto
-                for i, mes in enumerate(meses):
-                    mes_inicio = date(mes['year'], mes['month'], 1)
-                    mes_fin = mes_inicio + relativedelta(months=1) - relativedelta(days=1)
-                    if mes_inicio <= fecha_entrada <= mes_fin:
-                        row['pagos_mensuales'][i] += monto_entrada
-                        if not row['es_devolucion']:
-                            totales_mensuales[i] += monto_entrada
-                        else:
-                            totales_mensuales[i] -= monto_entrada
-                        break
-                # Siempre sumar la entrada al total pagado
-                row['total_pagado'] += monto_entrada
+            if pago.id in ids_entradas:
                 continue
                 
             detalles = pago.detalles.select_related('cuota')
