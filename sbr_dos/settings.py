@@ -57,7 +57,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key-for-dev')
 # Secure by default: If DJANGO_ENV is not set, DEBUG will be False
 DEBUG = os.getenv('DJANGO_ENV') == 'development'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'ciudadelabellavista.pythonanywhere.com,localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -114,7 +114,7 @@ WSGI_APPLICATION = 'sbr_dos.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'sbr_db.sqlite3',
+        'NAME': BASE_DIR /'db.sqlite3',
     }
 }
 
@@ -201,9 +201,9 @@ JAZZMIN_SETTINGS = {
             "permissions": ["auth.view_user"], # Solo mostrar a quien tenga permiso (opcional)
         },
     ],
-    
+
     # Opcional: Para que el logo de arriba a la izquierda también lleve al inicio
-    # "site_logo": "img/logo.png", 
+    # "site_logo": "img/logo.png",
 }
 
 
