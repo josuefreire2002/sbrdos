@@ -26,18 +26,18 @@
             <form method="get" class="d-flex gap-2 align-items-center bg-white p-2 rounded shadow-sm border">
                 <select name="mes" class="form-select form-select-sm" required>
                     <option value="anual" {% if es_anual %}selected{% endif %}>Todo el Año (Anual)</option>
-                    <option value="1" {% if mes_actual==1 %}selected{% endif %}>Enero</option>
-                    <option value="2" {% if mes_actual==2 %}selected{% endif %}>Febrero</option>
-                    <option value="3" {% if mes_actual==3 %}selected{% endif %}>Marzo</option>
-                    <option value="4" {% if mes_actual==4 %}selected{% endif %}>Abril</option>
-                    <option value="5" {% if mes_actual==5 %}selected{% endif %}>Mayo</option>
-                    <option value="6" {% if mes_actual==6 %}selected{% endif %}>Junio</option>
-                    <option value="7" {% if mes_actual==7 %}selected{% endif %}>Julio</option>
-                    <option value="8" {% if mes_actual==8 %}selected{% endif %}>Agosto</option>
-                    <option value="9" {% if mes_actual==9 %}selected{% endif %}>Septiembre</option>
-                    <option value="10" {% if mes_actual==10 %}selected{% endif %}>Octubre</option>
-                    <option value="11" {% if mes_actual==11 %}selected{% endif %}>Noviembre</option>
-                    <option value="12" {% if mes_actual==12 %}selected{% endif %}>Diciembre</option>
+                    <option value="1" {% if mes_actual == 1 %}selected{% endif %}>Enero</option>
+                    <option value="2" {% if mes_actual == 2 %}selected{% endif %}>Febrero</option>
+                    <option value="3" {% if mes_actual == 3 %}selected{% endif %}>Marzo</option>
+                    <option value="4" {% if mes_actual == 4 %}selected{% endif %}>Abril</option>
+                    <option value="5" {% if mes_actual == 5 %}selected{% endif %}>Mayo</option>
+                    <option value="6" {% if mes_actual == 6 %}selected{% endif %}>Junio</option>
+                    <option value="7" {% if mes_actual == 7 %}selected{% endif %}>Julio</option>
+                    <option value="8" {% if mes_actual == 8 %}selected{% endif %}>Agosto</option>
+                    <option value="9" {% if mes_actual == 9 %}selected{% endif %}>Septiembre</option>
+                    <option value="10" {% if mes_actual == 10 %}selected{% endif %}>Octubre</option>
+                    <option value="11" {% if mes_actual == 11 %}selected{% endif %}>Noviembre</option>
+                    <option value="12" {% if mes_actual == 12 %}selected{% endif %}>Diciembre</option>
                 </select>
                 <input type="number" name="anio" class="form-control form-control-sm" value="{{ anio_actual }}"
                     min="2020" max="2100" style="width: 80px;" required>
