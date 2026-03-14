@@ -1089,6 +1089,21 @@ def reporte_general_view(request):
         # Procesar cada pago
         for pago in contrato.pago_set.all():
             if pago.es_entrada or (pago == pago_entrada and not pago.detalles.exists()):
+                # Incluir la entrada siempre en el total (sin importar el rango de fechas)
+                fecha_entrada = pago.fecha_pago
+                monto_entrada = pago.monto
+                for i, mes in enumerate(meses):
+                    mes_inicio = date(mes['year'], mes['month'], 1)
+                    mes_fin = mes_inicio + relativedelta(months=1) - relativedelta(days=1)
+                    if mes_inicio <= fecha_entrada <= mes_fin:
+                        row['pagos_mensuales'][i] += monto_entrada
+                        if not row['es_devolucion']:
+                            totales_mensuales[i] += monto_entrada
+                        else:
+                            totales_mensuales[i] -= monto_entrada
+                        break
+                # Siempre sumar la entrada al total pagado
+                row['total_pagado'] += monto_entrada
                 continue
                 
             detalles = pago.detalles.select_related('cuota')
@@ -1244,6 +1259,21 @@ def reporte_general_pdf_view(request):
         # Procesar cada pago
         for pago in contrato.pago_set.all():
             if pago.es_entrada or (pago == pago_entrada and not pago.detalles.exists()):
+                # Incluir la entrada siempre en el total (sin importar el rango de fechas)
+                fecha_entrada = pago.fecha_pago
+                monto_entrada = pago.monto
+                for i, mes in enumerate(meses):
+                    mes_inicio = date(mes['year'], mes['month'], 1)
+                    mes_fin = mes_inicio + relativedelta(months=1) - relativedelta(days=1)
+                    if mes_inicio <= fecha_entrada <= mes_fin:
+                        row['pagos_mensuales'][i] += monto_entrada
+                        if not row['es_devolucion']:
+                            totales_mensuales[i] += monto_entrada
+                        else:
+                            totales_mensuales[i] -= monto_entrada
+                        break
+                # Siempre sumar la entrada al total pagado
+                row['total_pagado'] += monto_entrada
                 continue
                 
             detalles = pago.detalles.select_related('cuota')
