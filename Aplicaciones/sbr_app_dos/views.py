@@ -1136,6 +1136,10 @@ def reporte_general_view(request):
                                 totales_mensuales[i] -= monto
                             break # Ya lo encontró
                             
+                    # Distribuir en total del rango
+                    if desde <= fecha_pago_real <= hasta:
+                        row['total_pagado'] += monto
+                            
                         
             elif pago.id not in ids_entradas:
                 # Pago legacy sin detalles
@@ -1319,6 +1323,10 @@ def reporte_general_pdf_view(request):
                             else:
                                 totales_mensuales[i] -= monto
                             break
+                            
+                    # Distribuir en total del rango
+                    if desde.replace(day=1) <= fecha_pago_real <= hasta_fin_de_mes_range:
+                        row['total_pagado'] += monto
                             
             elif pago.id not in ids_entradas:
                 # Pago legacy
