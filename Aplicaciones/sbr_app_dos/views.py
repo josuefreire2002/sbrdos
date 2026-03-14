@@ -188,15 +188,17 @@ def lista_clientes_view(request):
     if request.user.is_superuser:
         clientes = Cliente.objects.all()
         contratos_activos = Contrato.objects.filter(estado='ACTIVO')
+        contratos = Contrato.objects.select_related('cliente').prefetch_related('lotes').order_by('fecha_contrato', 'id')
     else:
         clientes = Cliente.objects.filter(vendedor=request.user)
         contratos_activos = Contrato.objects.filter(estado='ACTIVO', cliente__vendedor=request.user)
+        contratos = Contrato.objects.filter(cliente__vendedor=request.user).select_related('cliente').prefetch_related('lotes').order_by('fecha_contrato', 'id')
     
     # NUEVA LÓGICA: Forzar recálculo masivo de moras en tiempo real para todos los contratos listados
     from .services import actualizar_moras_masivo
     actualizar_moras_masivo(contratos_activos)
     
-    return render(request, 'ventas/lista_clientes.html', {'clientes': clientes})
+    return render(request, 'ventas/lista_clientes.html', {'clientes': clientes, 'contratos': contratos})
 
 # ==========================================
 # 4. DETALLE CONTRATO (Panel Cliente)
