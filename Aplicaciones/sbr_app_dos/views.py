@@ -1105,26 +1105,22 @@ def reporte_general_view(request):
                         totales_mensuales[i] -= monto_e
                     break
         """
-        pago_entrada_obj = contrato.pago_set.filter(es_entrada=True).order_by('id').first()
-        if not pago_entrada_obj:
-            pago_entrada_obj = contrato.pago_set.order_by('id').first()
-
-
-        # IDs de pagos de entrada para excluirlos del loop principal
+        # IDs de pagos de entrada para excluirlos de la lógica "Legacy" (sin detalles)
         ids_entradas = set(contrato.pago_set.filter(es_entrada=True).values_list('id', flat=True))
-        if pago_entrada_obj:
-            ids_entradas.add(pago_entrada_obj.id)
+        if contrato.valor_entrada > 0 and not ids_entradas:
+            # Fallback: Solo si hay deuda de entrada pero no hay flag, tomamos el primer pago como entrada
+            pago_entrada_obj_fallback = contrato.pago_set.order_by('id').first()
+            if pago_entrada_obj_fallback:
+                ids_entradas.add(pago_entrada_obj_fallback.id)
 
-        # Procesar cuotas (excluir pagos de entrada para no duplicar)
+        # Procesar cuotas
         for pago in contrato.pago_set.all():
-            if pago.id in ids_entradas:
-                continue
-                
             detalles = pago.detalles.select_related('cuota')
             
             if detalles.exists():
-                # Pago moderno con detalles de distribución
+                # SIEMPRE procesar detalles (son cuotas/mora reales)
                 for detalle in detalles:
+
                     fecha_pago_real = pago.fecha_pago
                     monto = detalle.monto_aplicado
                     
@@ -1140,12 +1136,10 @@ def reporte_general_view(request):
                                 totales_mensuales[i] -= monto
                             break # Ya lo encontró
                             
-                    # Distribuir en total del rango
-                    if desde <= fecha_pago_real <= hasta:
-                        row['total_pagado'] += monto
                         
-            else:
+            elif pago.id not in ids_entradas:
                 # Pago legacy sin detalles
+
                 fecha_ref = pago.fecha_pago
                 monto = pago.monto
                 
@@ -1297,25 +1291,19 @@ def reporte_general_pdf_view(request):
                         totales_mensuales[i] -= monto_e
                     break
         """
-        pago_entrada_obj = contrato.pago_set.filter(es_entrada=True).order_by('id').first()
-        if not pago_entrada_obj:
-            pago_entrada_obj = contrato.pago_set.order_by('id').first()
-
-
-        # IDs de pagos de entrada para excluirlos del loop principal
+        # IDs de pagos de entrada para excluirlos de la lógica "Legacy"
         ids_entradas = set(contrato.pago_set.filter(es_entrada=True).values_list('id', flat=True))
-        if pago_entrada_obj:
-            ids_entradas.add(pago_entrada_obj.id)
+        if contrato.valor_entrada > 0 and not ids_entradas:
+            pago_entrada_obj_fallback = contrato.pago_set.order_by('id').first()
+            if pago_entrada_obj_fallback:
+                ids_entradas.add(pago_entrada_obj_fallback.id)
 
-        # Procesar cuotas (excluir pagos de entrada para no duplicar)
+        # Procesar cuotas
         for pago in contrato.pago_set.all():
-            if pago.id in ids_entradas:
-                continue
-                
             detalles = pago.detalles.select_related('cuota')
             
             if detalles.exists():
-                # Pago moderno con detalles
+                # SIEMPRE procesar detalles
                 for detalle in detalles:
                     fecha_pago_real = pago.fecha_pago
                     monto = detalle.monto_aplicado
@@ -1332,12 +1320,9 @@ def reporte_general_pdf_view(request):
                                 totales_mensuales[i] -= monto
                             break
                             
-                    # Distribuir en total del rango
-                    if desde.replace(day=1) <= fecha_pago_real <= hasta_fin_de_mes_range:
-                        row['total_pagado'] += monto
-                        
-            else:
+            elif pago.id not in ids_entradas:
                 # Pago legacy
+
                 fecha_ref = pago.fecha_pago
                 monto = pago.monto
                 
