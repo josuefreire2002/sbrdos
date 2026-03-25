@@ -20,6 +20,7 @@ urlpatterns = [
     # Sistema de Gestión Interna (sbr_app_dos) - Requiere autenticación
     # Ahora es la página principal por defecto
     path('', include('Aplicaciones.sbr_app_dos.urls')), 
+    path('gestor/', include('Aplicaciones.sbr_gestor.urls')), # Incluir urls del gestor de gastos
 ]
 
 # Configuración para servir archivos subidos (Fotos recibos y PDFs) en modo DEBUG

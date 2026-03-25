@@ -413,9 +413,9 @@
 
                 <div class="px-4 mt-2 mb-1 text-uppercase small fw-bold text-white-50 menu-category">Finanzas
                 </div>
-                <a class="nav-link {% if request.resolver_match.url_name == 'gestor_gastos' %}active{% endif %}"
-                    href="{% url 'gestor_gastos' %}">
-                    <i class="bi bi-cash-stack"></i> <span class="sidebar-text">Gestor de Gastos</span>
+                <a class="nav-link {% if request.resolver_match.url_name == 'gestor_dashboard' %}active{% endif %}"
+                    href="{% url 'gestor_dashboard' %}">
+                    <i class="bi bi-cash-stack"></i> <span class="sidebar-text">Gestor de Transacciones</span>
                 </a>
 
                 {% if user.is_superuser %}

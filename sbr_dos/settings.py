@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     'axes', # Protección contra ataques de fuerza bruta
     'django_recaptcha', # Google Recaptcha
     'Aplicaciones.sbr_app_dos',
+    'Aplicaciones.sbr_gestor',
 ]
 
 MIDDLEWARE = [
