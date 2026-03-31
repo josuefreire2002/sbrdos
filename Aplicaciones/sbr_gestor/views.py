@@ -35,7 +35,19 @@ def calcular_ganancias_lotes_rapido(mes=None, anio=None):
     if suma_fantasmas:
         total_pagos += suma_fantasmas
         
+        
     return total_pagos
+
+def obtener_saldo_general_global():
+    from django.db.models import Sum
+    
+    ingresos_lotes = calcular_ganancias_lotes_rapido()
+    
+    ingresos_caja = Transaccion.objects.filter(tipo='INGRESO').aggregate(t=Sum('valor'))['t'] or Decimal('0.00')
+    gastos_caja = Transaccion.objects.filter(tipo='GASTO').aggregate(t=Sum('valor'))['t'] or Decimal('0.00')
+    
+    saldo_actual = (ingresos_lotes + ingresos_caja) - gastos_caja
+    return saldo_actual
 
 @login_required
 def dashboard_gestor_view(request):
@@ -181,6 +193,15 @@ def registrar_transaccion_view(request):
                 messages.error(request, "El monto debe ser mayor a 0.")
                 return redirect('gestor_dashboard')
                 
+            if tipo == 'GASTO':
+                saldo_actual = obtener_saldo_general_global()
+                if monto > saldo_actual:
+                    error_msg = f"Transacción denegada. El gasto (${monto:.2f}) supera tu saldo general disponible (${saldo_actual:.2f})."
+                    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                        return JsonResponse({'success': False, 'error': error_msg})
+                    messages.error(request, error_msg)
+                    return redirect('gestor_dashboard')
+                
             categoria = None
             if categoria_id:
                 categoria = CategoriaTransaccion.objects.filter(id=categoria_id).first()
@@ -222,6 +243,16 @@ def editar_transaccion_view(request, tr_id):
             if monto <= 0:
                 messages.error(request, "El monto debe ser mayor a 0.")
                 return redirect('gestor_dashboard')
+                
+            if tr.tipo == 'GASTO':
+                saldo_actual = obtener_saldo_general_global()
+                saldo_disponible = saldo_actual + tr.valor
+                if monto > saldo_disponible:
+                    error_msg = f"Actualización denegada. El nuevo gasto (${monto:.2f}) supera el saldo general máximo disponible (${saldo_disponible:.2f})."
+                    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                        return JsonResponse({'success': False, 'error': error_msg})
+                    messages.error(request, error_msg)
+                    return redirect('gestor_dashboard')
                 
             categoria = None
             if categoria_id:

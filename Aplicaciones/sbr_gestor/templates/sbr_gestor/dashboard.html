@@ -169,19 +169,34 @@
         .kpi-card {
             padding: 1rem;
         }
+        .kpi-card h3 {
+            font-size: 1.5rem; /* Letra más pequeña en móviles */
+        }
         .kpi-card-icon {
-            width: 45px;
-            height: 45px;
+            width: 40px;
+            height: 40px;
             font-size: 1.5rem;
         }
         .header-actions {
             width: 100%;
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+        .filtro-mes {
+            width: 100%;
             justify-content: space-between;
         }
-        .filtro-mes, .btn-nueva-transaccion {
-            flex: 1;
-            display: flex;
+        .btn-nueva-transaccion {
+            width: 100%;
             justify-content: center;
+        }
+        /* Ajustar DataTable Paginación para móviles */
+        .dataTables_wrapper .row {
+            text-align: center;
+        }
+        .dataTables_wrapper .d-flex.justify-content-end {
+            justify-content: center !important;
+            margin-top: 10px;
         }
     }
 </style>
@@ -270,6 +285,7 @@
                                     <th>Fecha</th>
                                     <th>Tipo</th>
                                     <th>Categoría</th>
+                                    <th>Monto</th>
                                     <th>Descripción</th>
                                     <th>Recibo</th>
                                     <th class="text-end pe-4">Acciones</th>
@@ -290,9 +306,10 @@
                                         <span class="badge bg-light text-dark border">{{ mov.categoria_nombre }}</span>
                                     </td>
                                     <td>
-                                        <span class="text-truncate d-inline-block" style="max-width: 150px;" title="{{ mov.descripcion }}">
-                                            <strong>${{ mov.valor|floatformat:2 }}</strong> - {{ mov.descripcion|default:"<i class='text-muted'>Sin descripción</i>"|safe }}
-                                        </span>
+                                        <strong class="text-dark fs-6">${{ mov.valor|floatformat:2 }}</strong>
+                                    </td>
+                                    <td style="white-space: normal; min-width: 200px;">
+                                        {{ mov.descripcion|default:"<i class='text-muted'>Sin descripción</i>"|safe }}
                                     </td>
                                     <td>
                                         {% if mov.numero_recibo or mov.foto_url %}
@@ -773,6 +790,10 @@
                 // Efecto visual de carga
                 var btn = form.find('button[type="submit"]');
                 var originalText = btn.html();
+                
+                // Limpiar alertas previas
+                form.find('.form-alert-error').remove();
+                
                 btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...');
 
                 $.ajax({
@@ -784,20 +805,26 @@
                     headers: {'X-Requested-With': 'XMLHttpRequest'},
                     success: function(res) {
                         if(res.success) {
-                            // Ocultar modal manualmente
                             form.closest('.modal').modal('hide');
                             $('.modal-backdrop').remove();
                             $('body').removeClass('modal-open').css('padding-right', '');
-                            
-                            // Efecto "En Vivo" mágico: Consultamos la API inmediatamente
                             actualizarYRecargarYFlash();
                         } else {
-                            alert("Error: " + res.error);
+                            // Mostrar mensaje de error integrado en el modal visualmente
+                            const errorHtml = `<div class="alert alert-danger alert-dismissible fade show form-alert-error mt-3" role="alert">
+                                                  <i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Error:</strong> ${res.error}
+                                                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                               </div>`;
+                            form.find('.modal-body').prepend(errorHtml);
                             btn.prop('disabled', false).html(originalText);
                         }
                     },
                     error: function() {
-                        alert("Ocurrió un error en el servidor.");
+                        const errorHtml = `<div class="alert alert-danger alert-dismissible fade show form-alert-error mt-3" role="alert">
+                                              <i class="bi bi-wifi-off me-2"></i><strong>Fallo de Red:</strong> Ocurrió un error en el servidor.
+                                              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                           </div>`;
+                        form.find('.modal-body').prepend(errorHtml);
                         btn.prop('disabled', false).html(originalText);
                     }
                 });
