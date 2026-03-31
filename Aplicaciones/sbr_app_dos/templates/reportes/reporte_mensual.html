@@ -77,23 +77,26 @@
         </div>
     </div>
 
+    {% if not es_mes_pasado %}
     <div class="col-12 col-md-6 col-xl-3">
         <div class="card border-0 border-top border-4 border-primary shadow-sm h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
                         <h6 class="text-muted text-uppercase x-small fw-bold mb-1"
-                            title="Cuotas por vencer en este mes">Proyección Restante</h6>
+                            title="{% if es_mes_pasado %}Cuotas que vencieron ese mes y siguen impagas{% else %}Cuotas por vencer en este mes{% endif %}">
+                            {% if es_mes_pasado %}Deuda Pendiente del Mes{% else %}Proyección Restante{% endif %}</h6>
                         <h2 class="fw-bold mb-0 text-primary">${{ total_proyeccion|intcomma }}</h2>
                     </div>
                     <i class="bi bi-calendar-check text-primary opacity-25 fs-1"></i>
                 </div>
                 <div class="p-2 bg-primary-subtle text-primary rounded-3 small fw-medium">
-                    <i class="bi bi-info-circle me-1"></i> Por cobrar este mes
+                    <i class="bi bi-info-circle me-1"></i> {% if es_mes_pasado %}Aún sin pagar hoy{% else %}Por cobrar este mes{% endif %}
                 </div>
             </div>
         </div>
     </div>
+    {% endif %}
 
     <div class="col-12 col-md-6 col-xl-3">
         <div class="card border-0 border-top border-4 border-danger shadow-sm h-100">
@@ -101,13 +104,14 @@
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
                         <h6 class="text-muted text-uppercase x-small fw-bold mb-1"
-                            title="Cuotas atrasadas de meses anteriores">Mora Histórica</h6>
+                            title="{% if es_mes_pasado %}Deuda arrastrada antes de ese mes que sigue impaga{% else %}Cuotas atrasadas de meses anteriores{% endif %}">
+                            {% if es_mes_pasado %}Deuda Histórica Arrastrada{% else %}Mora Histórica{% endif %}</h6>
                         <h2 class="fw-bold mb-0 text-danger">${{ total_mora_historica|intcomma }}</h2>
                     </div>
                     <i class="bi bi-exclamation-triangle text-danger opacity-25 fs-1"></i>
                 </div>
                 <div class="p-2 bg-danger-subtle text-danger rounded-3 small fw-medium">
-                    <i class="bi bi-exclamation-circle me-1"></i> Deuda de meses pasados
+                    <i class="bi bi-exclamation-circle me-1"></i> {% if es_mes_pasado %}Deuda anterior a ese mes{% else %}Deuda de meses pasados{% endif %}
                 </div>
             </div>
         </div>
@@ -193,11 +197,11 @@
 
 
     <!-- Proyeccion Table -->
+    {% if not es_mes_pasado %}
     <div class="col-12">
         <div class="card border-0 shadow-sm overflow-hidden">
             <div class="card-header bg-primary text-white py-3 px-4">
-                <h5 class="fw-bold mb-0"><i class="bi bi-calendar-check me-2"></i>Proyección Restante (Por cobrar este
-                    mes)</h5>
+                <h5 class="fw-bold mb-0"><i class="bi bi-calendar-check me-2"></i>{% if es_mes_pasado %}Deuda Pendiente del Mes{% else %}Proyección Restante (Por cobrar este mes){% endif %}</h5>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -233,13 +237,13 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- Mora Historica Table -->
     <div class="col-12">
         <div class="card border-0 shadow-sm overflow-hidden">
             <div class="card-header bg-danger text-white py-3 px-4">
-                <h5 class="fw-bold mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Mora Histórica (Arrastre de
-                    meses anteriores)</h5>
+                <h5 class="fw-bold mb-0"><i class="bi bi-exclamation-triangle me-2"></i>{% if es_mes_pasado %}Deuda Histórica Arrastrada (Anterior a este mes){% else %}Mora Histórica (Arrastre de meses anteriores){% endif %}</h5>
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">

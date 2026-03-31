@@ -863,18 +863,22 @@ def _obtener_datos_mensuales(user, mes_str, anio_str):
         ultimo_dia_mes = primer_dia_mes + relativedelta(months=1) - relativedelta(days=1)
     
     if user.is_superuser:
-        contratos = Contrato.objects.filter(estado='ACTIVO').prefetch_related('pago_set__detalles__cuota', 'cliente', 'lote')
+        contratos_todos = Contrato.objects.all().prefetch_related('pago_set__detalles__cuota', 'cliente', 'lote')
+        contratos_activos = Contrato.objects.filter(estado='ACTIVO').prefetch_related('pago_set__detalles__cuota', 'cliente', 'lote')
     else:
-        contratos = Contrato.objects.filter(estado='ACTIVO', cliente__vendedor=user).prefetch_related('pago_set__detalles__cuota', 'cliente', 'lote')
+        contratos_todos = Contrato.objects.filter(cliente__vendedor=user).prefetch_related('pago_set__detalles__cuota', 'cliente', 'lote')
+        contratos_activos = Contrato.objects.filter(estado='ACTIVO', cliente__vendedor=user).prefetch_related('pago_set__detalles__cuota', 'cliente', 'lote')
         
-    # 1. Ingresos Cash Flow: TODO pago recibido en el mes (incluyendo abono inicial)
+    es_mes_pasado = ultimo_dia_mes < hoy
+
+    # 1. Ingresos Cash Flow: TODO pago recibido en el mes (incluyendo abono inicial y de contratos que ahora estén inactivos)
     #    Una fila por TRANSACCION (no por cliente), con fecha y cuotas cubiertas
     cobros_lista_raw = []   # lista de transacciones individuales
     total_cobrado_mes = Decimal('0.00')
     total_entradas    = Decimal('0.00')
     total_ingresos    = Decimal('0.00')
 
-    for contrato in contratos:
+    for contrato in contratos_todos:
         cliente = contrato.cliente
         pago_entrada = contrato.pago_set.order_by('id').first()
 
@@ -918,30 +922,40 @@ def _obtener_datos_mensuales(user, mes_str, anio_str):
     cobros_lista_raw.sort(key=lambda x: (x['fecha_pago'], x['cliente'].apellidos))
 
     # 2. Proyección Restante (Cuotas venciendo este mes, aún no pagadas totalmente)
+    #    SOLO DE CONTRATOS ACTIVOS
     proyeccion_por_cliente = {}
-    for contrato in contratos:
-        cuotas_proyeccion = contrato.cuotas.filter(
-            fecha_vencimiento__gte=primer_dia_mes,
-            fecha_vencimiento__lte=ultimo_dia_mes,
-            estado__in=['PENDIENTE', 'PARCIAL', 'VENCIDO']
-        )
-        deuda = sum(c.saldo_pendiente for c in cuotas_proyeccion)
-        if deuda > 0:
-            proyeccion_por_cliente[contrato.id] = {
-                'cliente': contrato.cliente,
-                'contrato': contrato,
-                'cuotas_count': cuotas_proyeccion.count(),
-                'deuda_total': deuda
-            }
+    if not es_mes_pasado:
+        for contrato in contratos_activos:
+            cuotas_proyeccion = contrato.cuotas.filter(
+                fecha_vencimiento__gte=primer_dia_mes,
+                fecha_vencimiento__lte=ultimo_dia_mes,
+                estado__in=['PENDIENTE', 'PARCIAL', 'VENCIDO']
+            )
+            deuda = sum(c.saldo_pendiente for c in cuotas_proyeccion)
+            if deuda > 0:
+                proyeccion_por_cliente[contrato.id] = {
+                    'cliente': contrato.cliente,
+                    'contrato': contrato,
+                    'cuotas_count': cuotas_proyeccion.count(),
+                    'deuda_total': deuda
+                }
     total_proyeccion = sum(p['deuda_total'] for p in proyeccion_por_cliente.values())
 
     # 3. Mora Histórica (Cuotas vencidas ANTES de este mes, no pagadas)
+    #    SOLO DE CONTRATOS ACTIVOS
     mora_historica = {}
-    for contrato in contratos:
-        cuotas_mora = contrato.cuotas.filter(
-            fecha_vencimiento__lt=primer_dia_mes,
-            estado__in=['PENDIENTE', 'PARCIAL', 'VENCIDO']
-        )
+    for contrato in contratos_activos:
+        if es_mes_pasado:
+            # Si es mes pasado, TODO lo impago vencido hasta el fin de ESE mes se considera mora actual acumulada a la fecha de ese mes.
+            cuotas_mora = contrato.cuotas.filter(
+                fecha_vencimiento__lte=ultimo_dia_mes,
+                estado__in=['PENDIENTE', 'PARCIAL', 'VENCIDO']
+            )
+        else:
+            cuotas_mora = contrato.cuotas.filter(
+                fecha_vencimiento__lt=primer_dia_mes,
+                estado__in=['PENDIENTE', 'PARCIAL', 'VENCIDO']
+            )
         deuda = sum(c.saldo_pendiente for c in cuotas_mora)
         if deuda > 0:
             mora_historica[contrato.id] = {
@@ -960,6 +974,7 @@ def _obtener_datos_mensuales(user, mes_str, anio_str):
         'mes_actual': mes,
         'anio_actual': anio,
         'es_anual': es_anual,
+        'es_mes_pasado': es_mes_pasado,
         # --- Cobros: una fila por transacción (fecha + cuota + monto) ---
         'cobros_lista': cobros_lista_raw,
         'total_cobrado_mes': total_cobrado_mes,
@@ -1136,10 +1151,8 @@ def reporte_general_view(request):
                                 totales_mensuales[i] -= monto
                             break # Ya lo encontró
                             
-                    # Distribuir en total del rango
-                    if desde <= fecha_pago_real <= hasta:
-                        row['total_pagado'] += monto
-                            
+                    # Sumar SIEMPRE al histórico de Total Pagado
+                    row['total_pagado'] += monto
                         
             elif pago.id not in ids_entradas:
                 # Pago legacy sin detalles
@@ -1159,10 +1172,8 @@ def reporte_general_view(request):
                             totales_mensuales[i] -= monto
                         break
                         
-                # Distribuir en total del rango
-                if desde <= fecha_ref <= hasta:
-                    row['total_pagado'] += monto
-        
+                # Sumar SIEMPRE al histórico de Total Pagado
+                row['total_pagado'] += monto
         # Add to general total
         if row['es_devolucion']:
             total_general -= row['total_pagado']
@@ -1324,10 +1335,8 @@ def reporte_general_pdf_view(request):
                                 totales_mensuales[i] -= monto
                             break
                             
-                    # Distribuir en total del rango
-                    if desde.replace(day=1) <= fecha_pago_real <= hasta_fin_de_mes_range:
-                        row['total_pagado'] += monto
-                            
+                    # Sumar SIEMPRE al histórico de Total Pagado
+                    row['total_pagado'] += monto
             elif pago.id not in ids_entradas:
                 # Pago legacy
 

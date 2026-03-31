@@ -166,12 +166,14 @@
                         <div class="value">${{ total_ingresos }}</div>
                     </div>
                 </td>
+                {% if not es_mes_pasado %}
                 <td style="width: 33.33%; padding: 5px;">
                     <div class="summary-box blue" style="width: 90%; padding: 10px;">
-                        <div class="label">Proyección Mes</div>
+                        <div class="label">{% if es_mes_pasado %}Deuda Pendiente Mes{% else %}Proyección Mes{% endif %}</div>
                         <div class="value">${{ total_proyeccion }}</div>
                     </div>
                 </td>
+                {% endif %}
                 <td style="width: 33.33%; padding: 5px;">
                     <div class="summary-box red" style="width: 90%; padding: 10px;">
                         <div class="label">Mora Histórica</div>
@@ -208,7 +210,8 @@
         </tbody>
     </table>
 
-    <h2>Proyección Restante del Mes ({{ proyeccion_lista|length }} clientes)</h2>
+    {% if not es_mes_pasado %}
+    <h2>{% if es_mes_pasado %}Deuda Pendiente del Mes{% else %}Proyección Restante del Mes{% endif %} ({{ proyeccion_lista|length }} clientes)</h2>
     <table>
         <thead>
             <tr>
@@ -231,13 +234,14 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" class="text-center">No hay cuotas por cobrar este mes.</td>
+                <td colspan="5" class="text-center">{% if es_mes_pasado %}Todas las cuotas de este mes fueron pagadas.{% else %}No hay cuotas por cobrar este mes.{% endif %}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    {% endif %}
 
-    <h2>Mora Histórica Arrastrada ({{ mora_historica_lista|length }} clientes)</h2>
+    <h2>{% if es_mes_pasado %}Deuda Histórica Arrastrada{% else %}Mora Histórica Arrastrada{% endif %} ({{ mora_historica_lista|length }} clientes)</h2>
     <table>
         <thead>
             <tr>
