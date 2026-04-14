@@ -1093,7 +1093,6 @@ def reporte_general_view(request):
             c.total_a_pagar - c.valor_pagado
             for c in contrato.cuotas.all()
         )
-        total_saldo += row['saldo_pendiente']
         
         # Inicializar los totales de este contrato
         row['pagos_mensuales'] = [Decimal('0.00')] * len(meses)
@@ -1363,6 +1362,8 @@ def reporte_general_pdf_view(request):
             total_general -= row['total_pagado']
         else:
             total_general += row['total_pagado']
+            
+        total_saldo += row['saldo_pendiente']
         
         reporte_data.append(row)
     
