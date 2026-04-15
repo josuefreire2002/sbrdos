@@ -1088,16 +1088,17 @@ def reporte_general_view(request):
             fecha_vencimiento__lte=hasta
         )
         
-        # Calcular deuda pendiente TOTAL del contrato (igual que "Deuda Pendiente" en detalle_cliente)
+        # Calcular saldo pendiente y Total Pagado desde las cuotas (fuente de verdad)
+        # Total Pagado = V.Entrada + sum(cuota.valor_pagado) → independiente del rango de fechas
+        todas_cuotas = list(contrato.cuotas.all())
         row['saldo_pendiente'] = sum(
             c.total_a_pagar - c.valor_pagado
-            for c in contrato.cuotas.all()
+            for c in todas_cuotas
         )
-        
-        # Inicializar los totales de este contrato
-        row['pagos_mensuales'] = [Decimal('0.00')] * len(meses)
-        # Sumar el valor de entrada siempre, sin importar el rango de fechas
         row['total_pagado'] = contrato.valor_entrada or Decimal('0.00')
+
+        # Inicializar columnas mensuales (se llenarán con pagos del rango seleccionado)
+        row['pagos_mensuales'] = [Decimal('0.00')] * len(meses)
 
         # Ubicar la entrada en el mes correspondiente (COMENTADO: El usuario no quiere ver la entrada en la matriz de meses)
         # Esto evita que aparezca como una "cuota gigante" en el reporte
@@ -1129,6 +1130,10 @@ def reporte_general_view(request):
 
         # Procesar cuotas
         for pago in contrato.pago_set.all():
+            # Saltar el pago de entrada en ambas ramas: ya fue sumado en la línea de valor_entrada
+            if pago.id in ids_entradas:
+                continue
+
             detalles = pago.detalles.select_related('cuota')
             
             if detalles.exists():
@@ -1152,8 +1157,7 @@ def reporte_general_view(request):
                             
                     # Sumar SIEMPRE al histórico de Total Pagado
                     row['total_pagado'] += monto
-                        
-            elif pago.id not in ids_entradas:
+            else:
                 # Pago legacy sin detalles
 
                 fecha_ref = pago.fecha_pago
@@ -1354,9 +1358,8 @@ def reporte_general_pdf_view(request):
                             totales_mensuales[i] -= monto
                         break
                         
-                # Distribuir en total del rango
-                if desde.replace(day=1) <= fecha_ref <= hasta_fin_de_mes_range:
-                    row['total_pagado'] += monto
+                # Sumar SIEMPRE al histórico de Total Pagado
+                row['total_pagado'] += monto
         
         if row['es_devolucion']:
             total_general -= row['total_pagado']

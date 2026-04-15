@@ -11,32 +11,59 @@ from .models import Transaccion, CategoriaTransaccion
 from Aplicaciones.sbr_app_dos.models import Contrato
 
 def calcular_ganancias_lotes_rapido(mes=None, anio=None):
+    """
+    Calcula el total cobrado de lotes usando la misma lógica que
+    reporte_general columna 'Total Pagado':
+      - Sin filtro de mes: valor_entrada (campo contrato) + pagos de cuotas
+      - Con filtro de mes:  cash-flow → suma de Pago.monto recibido ese mes
+    Contratos DEVOLUCION se restan; CANCELADO/CERRADO se suman normalmente.
+    """
     from django.db.models import Sum
     from Aplicaciones.sbr_app_dos.models import Pago, Contrato
     from decimal import Decimal
-    
-    total_pagos = Decimal('0.00')
-    
-    # 1. Pagos reales
-    pagos_qs = Pago.objects.exclude(contrato__estado='DEVOLUCION')
+
     if mes and anio:
-        pagos_qs = pagos_qs.filter(fecha_pago__year=int(anio), fecha_pago__month=int(mes))
-        
-    suma_pagos = pagos_qs.aggregate(total=Sum('monto'))['total']
-    if suma_pagos:
-        total_pagos += suma_pagos
-        
-    # 2. Entradas "Fantasma" (Contratos con valor de entrada pero sin Pago en BD)
-    fantasmas_qs = Contrato.objects.filter(valor_entrada__gt=0, pago__isnull=True).exclude(estado='DEVOLUCION')
-    if mes and anio:
-        fantasmas_qs = fantasmas_qs.filter(fecha_contrato__year=int(anio), fecha_contrato__month=int(mes))
-        
-    suma_fantasmas = fantasmas_qs.aggregate(total=Sum('valor_entrada'))['total']
-    if suma_fantasmas:
-        total_pagos += suma_fantasmas
-        
-        
-    return total_pagos
+        # ── Modo cash-flow (mes específico) ─────────────────────────────────
+        # Solo el dinero realmente recibido en ese mes
+        total = (
+            Pago.objects
+            .filter(fecha_pago__year=int(anio), fecha_pago__month=int(mes))
+            .exclude(contrato__estado='DEVOLUCION')
+            .aggregate(t=Sum('monto'))['t'] or Decimal('0.00')
+        )
+        return total
+
+    # ── Modo total histórico (sin filtro de mes) ─────────────────────────────
+    # Replica exactamente: reporte_general → total_general
+    total = Decimal('0.00')
+
+    contratos_qs = Contrato.objects.prefetch_related('pago_set').all()
+
+    for contrato in contratos_qs:
+        # Identificar IDs de pagos de entrada (igual que reporte_general)
+        ids_entradas = set(
+            contrato.pago_set.filter(es_entrada=True).values_list('id', flat=True)
+        )
+        if contrato.valor_entrada > 0 and not ids_entradas:
+            # Fallback para contratos legacy sin flag es_entrada
+            primer_pago = contrato.pago_set.order_by('id').first()
+            if primer_pago:
+                ids_entradas.add(primer_pago.id)
+
+        # 1. Contar la entrada desde el campo del contrato (siempre)
+        contrato_total = contrato.valor_entrada or Decimal('0.00')
+
+        # 2. Sumar pagos de cuotas (no-entrada)
+        for pago in contrato.pago_set.exclude(id__in=ids_entradas):
+            contrato_total += pago.monto
+
+        # 3. DEVOLUCION resta; todo lo demás suma
+        if contrato.estado == 'DEVOLUCION':
+            total -= contrato_total
+        else:
+            total += contrato_total
+
+    return total
 
 def obtener_saldo_general_global():
     from django.db.models import Sum
