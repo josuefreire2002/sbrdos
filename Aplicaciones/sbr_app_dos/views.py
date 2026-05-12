@@ -378,7 +378,8 @@ def registrar_pago_view(request, pk):
     contrato = get_object_or_404(Contrato, pk=pk)
 
     if request.method == 'POST':
-        monto = float(request.POST.get('monto'))
+        monto_raw = request.POST.get('monto', '0').replace(',', '.')
+        monto = Decimal(monto_raw if monto_raw.strip() else '0')
         metodo = request.POST.get('metodo_pago')
         imagen = request.FILES.get('comprobante') # Puede ser None si es efectivo
         
@@ -759,9 +760,27 @@ def gestion_lotes_view(request):
 def crear_lote_view(request):
     if request.method == 'POST':
         try:
+            manzana_val = request.POST.get('manzana')
+            numero_lote_val = request.POST.get('numero_lote')
+            
+            if Lote.objects.filter(manzana=manzana_val, numero_lote=numero_lote_val).exists():
+                messages.error(request, f"Ya existe un lote con la manzana '{manzana_val}' y número de lote '{numero_lote_val}'.")
+                
+                lote_dict = {
+                    'manzana': manzana_val,
+                    'numero_lote': numero_lote_val,
+                    'dimensiones': request.POST.get('dimensiones'),
+                    'precio_contado': request.POST.get('precio'),
+                    'ciudad': request.POST.get('ciudad'),
+                    'canton': request.POST.get('canton'),
+                    'parroquia': request.POST.get('parroquia'),
+                    'provincia': request.POST.get('provincia')
+                }
+                return render(request, 'gestion/lotes_form.html', {'lote': lote_dict})
+
             lote = Lote.objects.create(
-                manzana=request.POST.get('manzana'),
-                numero_lote=request.POST.get('numero_lote'),
+                manzana=manzana_val,
+                numero_lote=numero_lote_val,
                 dimensiones=request.POST.get('dimensiones'),
                 precio_contado=request.POST.get('precio'),
                 estado='DISPONIBLE',
@@ -804,8 +823,24 @@ def editar_lote_view(request, pk):
 
     if request.method == 'POST':
         try:
-            lote.manzana = request.POST.get('manzana')
-            lote.numero_lote = request.POST.get('numero_lote')
+            manzana_val = request.POST.get('manzana')
+            numero_lote_val = request.POST.get('numero_lote')
+
+            if Lote.objects.filter(manzana=manzana_val, numero_lote=numero_lote_val).exclude(id=lote.id).exists():
+                messages.error(request, f"Ya existe otro lote con la manzana '{manzana_val}' y número de lote '{numero_lote_val}'.")
+                
+                lote.manzana = manzana_val
+                lote.numero_lote = numero_lote_val
+                lote.dimensiones = request.POST.get('dimensiones')
+                lote.precio_contado = request.POST.get('precio')
+                lote.ciudad = request.POST.get('ciudad')
+                lote.parroquia = request.POST.get('parroquia')
+                lote.provincia = request.POST.get('provincia')
+                lote.canton = request.POST.get('canton')
+                return render(request, 'gestion/lotes_form.html', {'lote': lote})
+
+            lote.manzana = manzana_val
+            lote.numero_lote = numero_lote_val
             lote.dimensiones = request.POST.get('dimensiones')
             lote.precio_contado = request.POST.get('precio')
             
