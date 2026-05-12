@@ -47,7 +47,7 @@
                             <select name="cuota_id" class="form-select">
                                 <option value="">-- Automático (Más antigua) --</option>
                                 {% for c in cuotas_pendientes %}
-                                <option value="{{ c.id }}">
+                                <option value="{{ c.id|stringformat:'d' }}">
                                     #{{ c.numero_cuota }} - Vence: {{ c.fecha_vencimiento|date:"d/m/Y" }}
                                     ({{ c.get_estado_display }}) - ${{ c.saldo_pendiente }}
                                 </option>

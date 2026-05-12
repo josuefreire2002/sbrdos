@@ -64,6 +64,9 @@ class Lote(models.Model):
     # Usuario que creó el lote (para control de permisos de edición)
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='lotes_creados')
     
+    # Fecha exacta en que se registró en el sistema
+    fecha_registro = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    
     # Para saber si está ocupado rápido
     def __str__(self):
         return f"Mz. {self.manzana} - Lote {self.numero_lote} ({self.estado})"
@@ -126,6 +129,9 @@ class Contrato(models.Model):
     
     # Bandera para saber si está en mora actualmente (calculado)
     esta_en_mora = models.BooleanField(default=False)
+
+    # Fecha exacta en que se registró el contrato en el sistema
+    fecha_registro = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     def __str__(self):
         return f"Contrato #{self.id} - {self.cliente}"

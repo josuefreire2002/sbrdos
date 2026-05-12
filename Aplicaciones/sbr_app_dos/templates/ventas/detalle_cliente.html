@@ -24,6 +24,11 @@
                                     <span><i class="bi bi-card-text me-1"></i> {{ contrato.cliente.cedula }}</span>
                                     <span><i class="bi bi-geo-alt me-1"></i>
                                         {{ contrato.lotes_display }}</span>
+                                    {% if contrato.fecha_registro %}
+                                    <span title="Fecha de creación del registro del contrato">
+                                        <i class="bi bi-clock-history me-1"></i> {{ contrato.fecha_registro|date:"d/m/Y H:i" }}
+                                    </span>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>

@@ -386,6 +386,8 @@ def registrar_pago_view(request, pk):
         # Campos opcionales nuevos
         fecha_pago = request.POST.get('fecha_pago')
         cuota_id = request.POST.get('cuota_id')
+        if cuota_id:
+            cuota_id = cuota_id.replace('\xa0', '').replace(' ', '').replace('.', '').replace(',', '')
 
         try:
             # Llamamos al servicio inteligente

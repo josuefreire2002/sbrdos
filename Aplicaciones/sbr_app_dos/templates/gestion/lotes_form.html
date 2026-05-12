@@ -2,12 +2,19 @@
 {% block content %}
 <div class="container" style="max-width: 800px;">
     <div class="card">
-        <div class="card-header bg-primary text-white">
-            <i class="bi bi-grid-3x3"></i>
-            {% if lote %}
-            Editar Lote #{{ lote.id }}
-            {% else %}
-            Registrar Nuevo Lote
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi bi-grid-3x3"></i>
+                {% if lote %}
+                Editar Lote #{{ lote.id }}
+                {% else %}
+                Registrar Nuevo Lote
+                {% endif %}
+            </div>
+            {% if lote.fecha_registro %}
+            <small class="text-white-50" title="Fecha de creación del registro en sistema">
+                <i class="bi bi-clock-history"></i> Registrado el: {{ lote.fecha_registro|date:"d M Y H:i" }}
+            </small>
             {% endif %}
         </div>
         <div class="card-body p-4">
